@@ -19,7 +19,7 @@
 
 ## Descripción del Proyecto
 
-Xploit es una plataforma CTF (Capture The Flag) al estilo OverTheWire con infraestructura en la nube AWS. La plataforma permite a los usuarios conectarse, resolver retos de seguridad, validar flags y competir en un ranking de puntos. Los retos se ejecutan en contenedores Docker aislados con diferentes niveles de dificultad.
+Xploit es una plataforma CTF (Capture The Flag) con infraestructura en la nube AWS. La plataforma permite a los usuarios conectarse, resolver retos de seguridad, validar flags y competir en un ranking de puntos. Los retos se ejecutan en contenedores Docker aislados con diferentes niveles de dificultad.
 
 ---
 
@@ -31,7 +31,6 @@ Actor
         └── Instancia AWS (Principal — Xploit)
               ├── Apache (Web)
               ├── MySQL (BBDD Usuarios)
-              ├── LDAP
               ├── pfSense
               └── Contenedores Docker
                     ├── Apache (Niveles CTF)
