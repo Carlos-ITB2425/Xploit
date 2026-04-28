@@ -1,6 +1,6 @@
 # Sprint Planning #1 — Proyecto Xploit
 
-**Proyecto:** Xploit — Plataforma CTF estilo OverTheWire  
+**Proyecto:** Xploit — Plataforma CTF
 **Sprint:** #1  
 **Fecha:** 13 de abril de 2026  
 **Metodología:** Scrum / Agile
