@@ -16,6 +16,7 @@ Para interactuar con la plataforma y registrar tus progresos, es necesario dispo
 ### 2. PÁGINA PRINCIPAL (HUB)
 Al iniciar sesión, visualizarás el panel central:
 
+* **Niveles:** Podrás ver los 3 **NIVELES**, podrás ver tu progreso y acceder a ellos.
 * **Rankings (TOP 10 GLOBAL):** En la parte inferior se muestra una tabla con los 10 mejores puntuadores de la plataforma. Si estás logueado, tu posición aparecerá resaltada para que puedas comparar tu progreso.
 * **Volver al Hub:** En cualquier momento, puedes regresar a esta pantalla principal haciendo clic en el botón de navegación superior, dentro de cualquier nivel.
 * **Desconexión:** Utiliza el botón **DISCONNECT** para cerrar tu sesión de forma segura.
