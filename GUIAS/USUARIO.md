@@ -48,5 +48,5 @@ Cada nivel contiene retos específicos. Cuando encuentres una cadena de texto (f
 
 **Nota:** Si la flag es correcta, el sistema sumará automáticamente los puntos (XP) a tu perfil y se actualizará tu rango en el ranking global.
 
-> [!IMPORTANT]
+> [!IMPORTANTE]
 > Recuerda: Cada flag solo puede ser validada una vez por usuario. Utiliza las **PISTAS** desplegables situadas a la derecha de cada nivel si te encuentras bloqueado en alguna fase del ataque.
