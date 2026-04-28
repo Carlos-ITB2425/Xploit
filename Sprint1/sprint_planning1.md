@@ -48,7 +48,7 @@ Actor
 - Instancia Principal (Xploit) — este sprint
 - Instancia Monitorización
 - Instancia Backups
-
+- Instancia PfSense
 ---
 
 ## Objetivo del Sprint #1
