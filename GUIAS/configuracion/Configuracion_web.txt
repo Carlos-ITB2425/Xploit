@@ -1,0 +1,2940 @@
+===== index.php =====
+<?php
+session_start();
+require_once 'db.php';
+
+// Obtener Top 10 Global
+$stmtTop = $pdo->query("SELECT username, puntos FROM usuarios ORDER BY puntos DESC, id ASC LIMIT 10");
+$top10 = $stmtTop->fetchAll();
+
+// Rango del usuario logueado
+$userRank = null;
+$flag_status = [
+    'lvl1_f1' => false,
+    'lvl1_f2' => false,
+    'lvl1_f3' => false,
+    'f1' => false,
+    'f2' => false,
+    'f3' => false,
+    'lvl3_f1' => false,
+    'lvl3_f2' => false,
+    'lvl3_f3' => false,
+    'lvl3_f4' => false
+];
+
+if (isset($_SESSION['user_id'])) {
+    $stmtRank = $pdo->prepare("
+        SELECT rank, puntos
+        FROM (
+            SELECT id, puntos, RANK() OVER (ORDER BY puntos DESC, id ASC) as rank
+            FROM usuarios
+        ) as sub
+        WHERE id = ?
+    ");
+    $stmtRank->execute([$_SESSION['user_id']]);
+    $userRank = $stmtRank->fetch();
+
+    $stmtFlags = $pdo->prepare("SELECT flag_id FROM flags_resueltas WHERE user_id = ? GROUP BY flag_id");
+    $stmtFlags->execute([$_SESSION['user_id']]);
+
+    while ($row = $stmtFlags->fetch()) {
+        if (array_key_exists($row['flag_id'], $flag_status)) {
+            $flag_status[$row['flag_id']] = true;
+        }
+    }
+}
+
+$nivel1_flags = [
+    'lvl1_f1' => 'FLAG 1 - Código Fuente',
+    'lvl1_f2' => 'FLAG 2 - Ruta Oculta',
+    'lvl1_f3' => 'FLAG 3 - Archivo Reservado'
+];
+
+$nivel2_flags = [
+    'f1' => 'FLAG 1 - Bypass Básico',
+    'f2' => 'FLAG 2 - Extracción de Archivos',
+    'f3' => 'FLAG 3 - Vault Secreto'
+];
+
+$nivel3_flags = [
+    'lvl3_f1' => 'FLAG 1 - Directorios Base',
+    'lvl3_f2' => 'FLAG 2 - Filtrado de Texto',
+    'lvl3_f3' => 'FLAG 3 - Búsqueda por Owner',
+    'lvl3_f4' => 'FLAG 4 - Deep Access'
+];
+?>
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>XPLOIT // PROTOCOL</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --neon-blue: #00f2ff;
+            --neon-green: #9dff00;
+            --neon-lime: #b7ff3c;
+            --neon-orange: #ffaa00;
+            --neon-red: #ff0055;
+            --bg-dark: #020406;
+        }
+
+        body {
+            background: var(--bg-dark);
+            color: #fff;
+            font-family: 'Share Tech Mono', monospace;
+            margin: 0;
+            background-image: radial-gradient(circle at 50% 50%, #0a1118 0%, #020406 100%);
+        }
+
+        .glitch-container {
+            text-align: center;
+            padding: 60px 0;
+        }
+
+        .hero-title {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 8rem;
+            font-weight: 900;
+            color: var(--neon-blue);
+            text-transform: uppercase;
+            letter-spacing: 15px;
+            position: relative;
+            animation: flicker 3s infinite;
+            text-shadow: 0 0 20px rgba(0, 242, 255, 0.5);
+            margin: 0;
+        }
+
+        @keyframes flicker {
+            0%, 19%, 21%, 23%, 25%, 54%, 56%, 100% {
+                opacity: 1;
+                text-shadow: 0 0 20px rgba(0, 242, 255, 0.5);
+            }
+            20%, 22%, 24%, 55% {
+                opacity: 0.3;
+                text-shadow: none;
+            }
+        }
+
+        nav {
+            display: flex;
+            justify-content: space-between;
+            padding: 20px 50px;
+            border-bottom: 1px solid rgba(0,242,255,0.1);
+            backdrop-filter: blur(10px);
+        }
+
+        .btn {
+            background: transparent;
+            border: 1px solid var(--neon-blue);
+            color: var(--neon-blue);
+            padding: 10px 20px;
+            cursor: pointer;
+            font-family: inherit;
+            transition: 0.3s;
+            text-transform: uppercase;
+        }
+
+        .btn:hover {
+            background: var(--neon-blue);
+            color: #000;
+            box-shadow: 0 0 20px var(--neon-blue);
+        }
+
+        .grid-levels {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 30px;
+            margin: 50px auto;
+            max-width: 1100px;
+            padding: 0 20px;
+            align-items: start;
+        }
+
+        .level-card {
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(255,255,255,0.1);
+            padding: 25px;
+            border-radius: 4px;
+            text-align: center;
+            transition: 0.35s ease;
+            position: relative;
+            overflow: hidden;
+            min-height: 320px;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+        }
+
+        .level-card:hover {
+            transform: translateY(-10px);
+            background: rgba(255,255,255,0.06);
+        }
+
+        .level-easy { border-top: 5px solid var(--neon-lime); }
+        .level-med  { border-top: 5px solid var(--neon-orange); }
+        .level-hard { border-top: 5px solid var(--neon-red); }
+
+        .badge {
+            display: inline-block;
+            padding: 5px 15px;
+            margin-bottom: 15px;
+            font-size: 0.8rem;
+            font-weight: bold;
+        }
+
+        .badge-green { background: var(--neon-lime); color: #000; }
+        .badge-orange { background: var(--neon-orange); color: #000; }
+        .badge-red { background: var(--neon-red); color: #fff; }
+
+        .level-card h3 {
+            font-family: 'Orbitron', sans-serif;
+            margin-top: 10px;
+            margin-bottom: 12px;
+            min-height: 56px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .level-desc {
+            color: gray;
+            font-size: 0.9rem;
+            margin-bottom: 18px;
+            min-height: 50px;
+        }
+
+        .flag-list {
+            max-height: 0;
+            overflow: hidden;
+            opacity: 0;
+            transform: translateY(-6px);
+            transition: max-height 0.4s ease, opacity 0.3s ease, margin 0.3s ease, padding 0.3s ease, transform 0.3s ease;
+            text-align: left;
+            margin-top: 0;
+            margin-bottom: 0;
+            padding-top: 0;
+            flex-grow: 0;
+        }
+
+        .level-card:hover .flag-list {
+            max-height: 260px;
+            opacity: 1;
+            transform: translateY(0);
+            margin-top: 10px;
+            margin-bottom: 15px;
+            border-top: 1px dashed rgba(255,255,255,0.1);
+            padding-top: 15px;
+        }
+
+        .mini-flag {
+            font-size: 0.85rem;
+            margin-bottom: 10px;
+            color: gray;
+        }
+
+        .mini-flag.completed {
+            color: #00ff88;
+        }
+
+        .progress-bar-bg {
+            height: 2px;
+            background: #333;
+            width: 100%;
+            margin-top: 4px;
+            overflow: hidden;
+        }
+
+        .progress-bar-fill {
+            height: 100%;
+            background: #00ff88;
+            width: 100%;
+        }
+
+        .intel-title {
+            font-size: 0.7rem;
+            margin-bottom: 10px;
+            font-weight: bold;
+            letter-spacing: 1px;
+        }
+
+        .btn-level {
+            width: 100%;
+            margin-top: auto;
+        }
+
+        .ranking-box {
+            max-width: 800px;
+            margin: 50px auto;
+            background: rgba(0,0,0,0.5);
+            border: 1px solid var(--neon-blue);
+            padding: 40px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        td, th {
+            padding: 15px;
+            text-align: left;
+            border-bottom: 1px solid rgba(0,242,255,0.1);
+        }
+
+        .my-rank {
+            background: rgba(0, 242, 255, 0.15);
+            color: var(--neon-blue);
+            font-weight: bold;
+            border: 1px solid var(--neon-blue);
+        }
+
+        .my-rank td {
+            color: inherit !important;
+        }
+
+        footer {
+            margin-top: 100px;
+            padding: 40px;
+            border-top: 1px solid rgba(255,255,255,0.05);
+            text-align: center;
+        }
+
+        .creators {
+            display: flex;
+            justify-content: center;
+            gap: 60px;
+            margin-top: 30px;
+            flex-wrap: wrap;
+        }
+
+        .creator-box {
+            background: rgba(0,0,0,0.3);
+            border: 1px solid rgba(0,242,255,0.2);
+            padding: 20px 40px;
+            border-radius: 4px;
+        }
+
+        .creator-name {
+            color: var(--neon-blue);
+            margin-bottom: 5px;
+            font-family:'Orbitron';
+            margin-top: 0;
+            font-size: 1.2rem;
+        }
+
+        .creator-role {
+            color: gray;
+            font-size: 0.9rem;
+            margin: 0;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.9);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content {
+            background: #0a0e12;
+            border: 1px solid var(--neon-blue);
+            padding: 40px;
+            width: 450px;
+            box-shadow: 0 0 30px rgba(0,242,255,0.2);
+        }
+
+        input {
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 20px;
+            background: #000;
+            border: 1px solid #333;
+            color: #fff;
+            font-family: inherit;
+            box-sizing: border-box;
+        }
+
+        input:focus {
+            border-color: var(--neon-blue);
+            outline: none;
+        }
+
+        .date-container {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            margin-top: 5px;
+        }
+
+        .date-select {
+            flex: 1;
+            padding: 12px;
+            background: #000;
+            border: 1px solid #333;
+            color: #fff;
+            font-family: inherit;
+            box-sizing: border-box;
+            cursor: pointer;
+            appearance: none;
+            text-align: center;
+        }
+
+        .date-select:focus {
+            border-color: var(--neon-blue);
+            outline: none;
+        }
+
+        .date-select.error {
+            border-color: var(--neon-red);
+            box-shadow: 0 0 15px rgba(255,0,85,0.4);
+        }
+
+        .date-select option {
+            background: #0a0e12;
+            color: #fff;
+        }
+
+        .modal-link {
+            display: block;
+            text-align: center;
+            margin-top: 20px;
+            font-size: 0.9rem;
+            color: gray;
+        }
+
+        .modal-link a {
+            color: var(--neon-blue);
+            text-decoration: none;
+            font-weight: bold;
+            transition: 0.3s;
+            margin-top: 5px;
+            display: inline-block;
+        }
+
+        .modal-link a:hover {
+            text-shadow: 0 0 10px var(--neon-blue);
+        }
+
+        @media (max-width: 1000px) {
+            .grid-levels {
+                grid-template-columns: 1fr;
+            }
+
+            nav {
+                flex-direction: column;
+                gap: 15px;
+                padding: 20px;
+                text-align: center;
+            }
+
+            .hero-title {
+                font-size: 4rem;
+                letter-spacing: 8px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<nav>
+    <div style="font-family:'Orbitron'; color:var(--neon-blue); font-size: 1.2rem; font-weight: bold; letter-spacing: 2px;">CORE_V3.2</div>
+    <div>
+        <?php if(isset($_SESSION['username'])): ?>
+            <span style="margin-right: 20px;">WELCOME_AGENTE: <span style="color:var(--neon-blue);"><?php echo htmlspecialchars($_SESSION['username']); ?></span></span>
+            <button class="btn" style="border-color:var(--neon-red); color:var(--neon-red);" onclick="location.href='logout.php'">DISCONNECT</button>
+        <?php else: ?>
+            <button class="btn" onclick="showModal('login')">LOGIN</button>
+            <button class="btn" style="margin-left:10px" onclick="showModal('reg')">REGISTER</button>
+        <?php endif; ?>
+    </div>
+</nav>
+
+<div class="glitch-container">
+    <h1 class="hero-title">XPLOIT</h1>
+    <p style="color:var(--neon-blue); letter-spacing: 5px; margin-top: 10px;">SISTEMA DE ENTRENAMIENTO EN CIBERSEGURIDAD</p>
+</div>
+
+<div class="grid-levels">
+    <div class="level-card level-easy">
+        <span class="badge badge-green">NIVEL 1: APACHE</span>
+        <h3>WEB_INSPECTOR</h3>
+        <p class="level-desc">Análisis de código fuente y descubrimiento de rutas.</p>
+
+        <?php if(isset($_SESSION['user_id'])): ?>
+        <div class="flag-list">
+            <div class="intel-title" style="color:var(--neon-lime);">// INTEL RECOPILADA</div>
+            <?php foreach($nivel1_flags as $fid => $fname):
+                $is_solved = $flag_status[$fid];
+                $color_class = $is_solved ? 'completed' : 'normal';
+            ?>
+            <div class="mini-flag <?php echo $color_class; ?>">
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <span>> <?php echo $fname; ?></span>
+                    <?php if($is_solved): ?>
+                        <span style="font-size:0.7rem; color:#00ff88;">[ COMPLETADA ]</span>
+                    <?php endif; ?>
+                </div>
+                <?php if($is_solved): ?>
+                    <div class="progress-bar-bg" style="background: rgba(0, 255, 136, 0.2);">
+                        <div class="progress-bar-fill"></div>
+                    </div>
+                <?php endif; ?>
+            </div>
+            <?php endforeach; ?>
+        </div>
+        <?php endif; ?>
+
+        <button class="btn btn-level" style="border-color:var(--neon-lime); color:var(--neon-lime);" onclick="checkAuthAndGo('nivel1.php')">
+            INICIAR MISIÓN
+        </button>
+    </div>
+
+    <div class="level-card level-med">
+        <span class="badge badge-orange">NIVEL 2: MYSQL</span>
+        <h3>AUTH_BYPASS</h3>
+        <p class="level-desc">Inyección SQL ciega en sistema de acceso.</p>
+
+        <?php if(isset($_SESSION['user_id'])): ?>
+        <div class="flag-list">
+            <div class="intel-title" style="color:var(--neon-orange);">// INTEL RECOPILADA</div>
+            <?php foreach($nivel2_flags as $fid => $fname):
+                $is_solved = $flag_status[$fid];
+                $color_class = $is_solved ? 'completed' : 'normal';
+            ?>
+            <div class="mini-flag <?php echo $color_class; ?>">
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <span>> <?php echo $fname; ?></span>
+                    <?php if($is_solved): ?>
+                        <span style="font-size:0.7rem; color:#00ff88;">[ COMPLETADA ]</span>
+                    <?php endif; ?>
+                </div>
+                <?php if($is_solved): ?>
+                    <div class="progress-bar-bg" style="background: rgba(0, 255, 136, 0.2);">
+                        <div class="progress-bar-fill"></div>
+                    </div>
+                <?php endif; ?>
+            </div>
+            <?php endforeach; ?>
+        </div>
+        <?php endif; ?>
+
+        <button class="btn btn-level" style="border-color:var(--neon-orange); color:var(--neon-orange);" onclick="checkAuthAndGo('nivel2.php')">
+            INICIAR MISIÓN
+        </button>
+    </div>
+
+    <div class="level-card level-hard">
+        <span class="badge badge-red">NIVEL 3: LINUX</span>
+        <h3>CONTAINER_HUNT</h3>
+        <p class="level-desc">Explora el sistema de archivos del contenedor.</p>
+
+        <?php if(isset($_SESSION['user_id'])): ?>
+        <div class="flag-list">
+            <div class="intel-title" style="color:var(--neon-red);">// INTEL RECOPILADA</div>
+            <?php foreach($nivel3_flags as $fid => $fname):
+                $is_solved = $flag_status[$fid];
+                $color_class = $is_solved ? 'completed' : 'normal';
+            ?>
+            <div class="mini-flag <?php echo $color_class; ?>">
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <span>> <?php echo $fname; ?></span>
+                    <?php if($is_solved): ?>
+                        <span style="font-size:0.7rem; color:#00ff88;">[ COMPLETADA ]</span>
+                    <?php endif; ?>
+                </div>
+                <?php if($is_solved): ?>
+                    <div class="progress-bar-bg" style="background: rgba(0, 255, 136, 0.2);">
+                        <div class="progress-bar-fill"></div>
+                    </div>
+                <?php endif; ?>
+            </div>
+            <?php endforeach; ?>
+        </div>
+        <?php endif; ?>
+
+        <button class="btn btn-level" style="border-color:var(--neon-red); color:var(--neon-red);" onclick="checkAuthAndGo('nivel3.php')">
+            INICIAR MISIÓN
+        </button>
+    </div>
+</div>
+
+<div class="ranking-box">
+    <h2 style="text-align:center; color:var(--neon-blue); font-family:'Orbitron'; margin-top:0;">TOP 10 GLOBAL</h2>
+    <table>
+        <thead>
+            <tr>
+                <th style="color:gray;">RANK</th>
+                <th style="color:gray;">USUARIO</th>
+                <th style="color:gray;">PUNTOS</th>
+            </tr>
+        </thead>
+        <tbody>
+            <?php foreach($top10 as $index => $row): ?>
+                <?php
+                    $isMe = isset($_SESSION['username']) && $row['username'] === $_SESSION['username'];
+                    $rowClass = $isMe ? 'my-rank' : '';
+                ?>
+                <tr class="<?php echo $rowClass; ?>">
+                    <td style="<?php echo !$isMe ? 'color:var(--neon-blue); font-weight:bold;' : ''; ?>">
+                        <?php echo str_pad($index + 1, 2, '0', STR_PAD_LEFT); ?>
+                    </td>
+                    <td>
+                        <?php echo htmlspecialchars($row['username']); ?> <?php echo $isMe ? '[ TÚ ]' : ''; ?>
+                    </td>
+                    <td style="<?php echo !$isMe ? 'color:var(--neon-green);' : ''; ?>">
+                        <?php echo $row['puntos']; ?> XP
+                    </td>
+                </tr>
+            <?php endforeach; ?>
+
+            <?php if ($userRank && $userRank['rank'] > 10): ?>
+                <tr class="my-rank">
+                    <td><?php echo $userRank['rank']; ?></td>
+                    <td><?php echo htmlspecialchars($_SESSION['username']); ?> [ TÚ ]</td>
+                    <td><?php echo $userRank['puntos']; ?> XP</td>
+                </tr>
+            <?php endif; ?>
+        </tbody>
+    </table>
+</div>
+
+<footer>
+    <h3 style="color:var(--neon-blue); font-family:'Orbitron'; letter-spacing: 2px;">SISTEMA DESARROLLADO POR</h3>
+    <div class="creators">
+        <div class="creator-box"><h4 class="creator-name">Marc Manzorro</h4><p class="creator-role">Desarrollador</p></div>
+        <div class="creator-box"><h4 class="creator-name">Carlos Rodríguez</h4><p class="creator-role">Desarrollador</p></div>
+        <div class="creator-box"><h4 class="creator-name">Adrián González</h4><p class="creator-role">Desarrollador</p></div>
+    </div>
+</footer>
+
+<div class="modal" id="modalReg">
+    <div class="modal-content">
+        <h2 style="color:var(--neon-blue); font-family:'Orbitron'; margin-top:0;">NUEVA_IDENTIDAD</h2>
+        <input type="text" id="rnom" placeholder="NOMBRE">
+        <input type="text" id="rape" placeholder="APELLIDO">
+        <label style="font-size:0.7rem; color:var(--neon-blue); font-weight:bold;">FECHA DE NACIMIENTO</label>
+        <div class="date-container">
+            <select id="rday" class="date-select"><option value="">DÍA</option></select>
+            <select id="rmonth" class="date-select"><option value="">MES</option></select>
+            <select id="ryear" class="date-select"><option value="">AÑO</option></select>
+        </div>
+        <input type="text" id="ruser" placeholder="USERNAME">
+        <input type="email" id="rmail" placeholder="EMAIL">
+        <input type="password" id="rpass" placeholder="PASSWORD">
+        <button class="btn" style="width:100%; margin-top: 10px;" onclick="auth('reg')">CONFIRMAR REGISTRO</button>
+    </div>
+</div>
+
+<div class="modal" id="modalLogin">
+    <div class="modal-content">
+        <h2 style="color:var(--neon-blue); font-family:'Orbitron'; margin-top:0;">ACCESO_SISTEMA</h2>
+        <input type="text" id="luser" placeholder="USERNAME / EMAIL">
+        <input type="password" id="lpass" placeholder="PASSWORD">
+        <button class="btn" style="width:100%; margin-top: 10px;" onclick="auth('login')">IDENTIFICAR</button>
+        <div class="modal-link">
+            ¿NO TIENES AUTORIZACIÓN?<br>
+            <a href="#" onclick="document.getElementById('modalLogin').style.display='none'; showModal('reg'); return false;">SOLICITAR NUEVA IDENTIDAD</a>
+        </div>
+    </div>
+</div>
+
+<script>
+const isLoggedIn = <?php echo isset($_SESSION['user_id']) ? 'true' : 'false'; ?>;
+
+function checkAuthAndGo(url) {
+    if (isLoggedIn) {
+        location.href = url;
+    } else {
+        showModal('login');
+    }
+}
+
+const meses = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+const daySel = document.getElementById('rday');
+const monthSel = document.getElementById('rmonth');
+const yearSel = document.getElementById('ryear');
+
+for (let i = 2026; i >= 1920; i--) {
+    yearSel.innerHTML += `<option value="${i}">${i}</option>`;
+}
+
+meses.forEach((m, index) => {
+    monthSel.innerHTML += `<option value="${(index + 1).toString().padStart(2, '0')}">${m}</option>`;
+});
+
+function updateDays() {
+    let y = yearSel.value || 2026;
+    let m = monthSel.value || 1;
+    let daysInMonth = new Date(y, m, 0).getDate();
+    let currentDay = daySel.value;
+    daySel.innerHTML = '<option value="">DÍA</option>';
+    for (let i = 1; i <= daysInMonth; i++) {
+        let val = i.toString().padStart(2, '0');
+        daySel.innerHTML += `<option value="${val}" ${currentDay === val ? 'selected' : ''}>${i}</option>`;
+    }
+}
+
+monthSel.addEventListener('change', updateDays);
+yearSel.addEventListener('change', updateDays);
+updateDays();
+
+function showModal(id) {
+    document.getElementById('modal' + id.charAt(0).toUpperCase() + id.slice(1)).style.display = 'flex';
+}
+
+window.onclick = e => {
+    if (e.target.className === 'modal') e.target.style.display = 'none';
+};
+
+async function auth(type) {
+    const fd = new FormData();
+
+    if (type === 'login') {
+        fd.append('action', 'login');
+        fd.append('identifier', document.getElementById('luser').value);
+        fd.append('password', document.getElementById('lpass').value);
+    } else {
+        let d = daySel.value, m = monthSel.value, y = yearSel.value;
+        daySel.classList.remove('error');
+        monthSel.classList.remove('error');
+        yearSel.classList.remove('error');
+
+        if (!d || !m || !y) {
+            if (!d) daySel.classList.add('error');
+            if (!m) monthSel.classList.add('error');
+            if (!y) yearSel.classList.add('error');
+            return;
+        }
+
+        fd.append('action', 'register');
+        fd.append('nombre', document.getElementById('rnom').value);
+        fd.append('apellido', document.getElementById('rape').value);
+        fd.append('fechanac', `${y}-${m}-${d}`);
+        fd.append('username', document.getElementById('ruser').value);
+        fd.append('email', document.getElementById('rmail').value);
+        fd.append('password', document.getElementById('rpass').value);
+    }
+
+    const res = await fetch('auth.php', { method: 'POST', body: fd });
+    const data = await res.json();
+    if (data.success) location.reload();
+    else alert(data.message);
+}
+</script>
+
+</body>
+</html>
+
+===== nivel1.php =====
+<?php
+session_start();
+require_once 'db.php';
+
+// SEGURIDAD: Bloqueo sin sesión
+if (!isset($_SESSION['user_id'])) {
+    header("Location: index.php");
+    exit;
+}
+
+// Configuración de las Flags del Nivel 1
+$flags_reales = [
+    'lvl1_f1' => [
+        'flag' => 'F8wedQd00MWoS82EPbF',
+        'puntos' => 100,
+        'titulo' => 'FLAG 1'
+    ],
+    'lvl1_f2' => [
+        'flag' => 'geP2tDjbU50Q2Y6ZYRPj',
+        'puntos' => 350,
+        'titulo' => 'FLAG 2'
+    ],
+    'lvl1_f3' => [
+        'flag' => '',
+        'puntos' => 500,
+        'titulo' => 'FLAG 3'
+    ]
+];
+
+// Estados iniciales
+$estados = [
+    'lvl1_f1' => 'neutral',
+    'lvl1_f2' => 'neutral',
+    'lvl1_f3' => 'neutral'
+];
+
+$mensajes = [
+    'lvl1_f1' => '',
+    'lvl1_f2' => '',
+    'lvl1_f3' => ''
+];
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $user_id = $_SESSION['user_id'];
+
+    foreach ($flags_reales as $f_id => $data) {
+        $input = trim($_POST[$f_id] ?? '');
+
+        if ($input === '') continue;
+
+        if ($data['flag'] === '') {
+            $estados[$f_id] = 'error';
+            $mensajes[$f_id] = "<span class='txt-error'>[ FLAG TODAVÍA NO CONFIGURADA ]</span>";
+            continue;
+        }
+
+        if ($input === $data['flag']) {
+            $stmt = $pdo->prepare("SELECT COUNT(*) FROM flags_resueltas WHERE user_id = ? AND flag_id = ?");
+            $stmt->execute([$user_id, $f_id]);
+            $ya_resuelta = $stmt->fetchColumn() > 0;
+
+            if ($ya_resuelta) {
+                $estados[$f_id] = 'success';
+                $mensajes[$f_id] = "<span class='txt-success'>[ FLAG YA RECLAMADA - NO SUMA XP ]</span>";
+            } else {
+                try {
+                    $pdo->beginTransaction();
+
+                    $update = $pdo->prepare("UPDATE usuarios SET puntos = puntos + ? WHERE id = ?");
+                    $update->execute([$data['puntos'], $user_id]);
+
+                    $insert = $pdo->prepare("INSERT INTO flags_resueltas (user_id, flag_id) VALUES (?, ?)");
+                    $insert->execute([$user_id, $f_id]);
+
+                    $pdo->commit();
+
+                    $estados[$f_id] = 'success';
+                    $mensajes[$f_id] = "<span class='txt-success'>[ + {$data['puntos']} XP AÑADIDOS ]</span>";
+                } catch (Exception $e) {
+                    if ($pdo->inTransaction()) {
+                        $pdo->rollBack();
+                    }
+                    $estados[$f_id] = 'error';
+                    $mensajes[$f_id] = "<span class='txt-error'>[ ERROR DE SINCRONIZACIÓN CON LA DB ]</span>";
+                }
+            }
+        } else {
+            $estados[$f_id] = 'error';
+            $mensajes[$f_id] = "<span class='txt-error'>[ ERROR: FLAG INCORRECTA ]</span>";
+        }
+    }
+}
+?>
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>XPLOIT // NIVEL 1 VALIDATOR</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --neon-lime: #b7ff3c;
+            --neon-lime-strong: #d4ff63;
+            --neon-green: #00ff88;
+            --neon-red: #ff0055;
+            --bg-dark: #020406;
+        }
+
+        body {
+            background: var(--bg-dark);
+            color: #fff;
+            font-family: 'Share Tech Mono', monospace;
+            margin: 0;
+            background-image: radial-gradient(circle at 50% 50%, #132000 0%, #020406 100%);
+            min-height: 100vh;
+        }
+
+        nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 50px;
+            border-bottom: 1px solid rgba(183, 255, 60, 0.25);
+            backdrop-filter: blur(10px);
+        }
+
+        .btn {
+            background: transparent;
+            border: 1px solid var(--neon-lime);
+            color: var(--neon-lime);
+            padding: 10px 20px;
+            cursor: pointer;
+            font-family: inherit;
+            transition: 0.3s;
+            text-transform: uppercase;
+        }
+
+        .btn:hover {
+            background: var(--neon-lime);
+            color: #000;
+            box-shadow: 0 0 20px var(--neon-lime);
+        }
+
+        .split-container {
+            display: grid;
+            grid-template-columns: 60% 35%;
+            gap: 5%;
+            padding: 50px;
+            max-width: 1400px;
+            margin: auto;
+        }
+
+        .left-panel {
+            background: rgba(0,0,0,0.4);
+            border: 1px solid rgba(183, 255, 60, 0.3);
+            padding: 40px;
+            border-radius: 5px;
+            height: fit-content;
+        }
+
+        .left-panel h2 {
+            color: var(--neon-lime);
+            font-family: 'Orbitron', sans-serif;
+            font-size: 2rem;
+            margin-top: 0;
+            text-shadow: 0 0 10px rgba(183, 255, 60, 0.5);
+        }
+
+        .left-panel p {
+            color: #ccc;
+            font-size: 1.1rem;
+            margin-bottom: 40px;
+        }
+
+        .flag-box {
+            margin-bottom: 30px;
+            padding: 20px;
+            border-left: 4px solid var(--neon-lime);
+            background: rgba(183, 255, 60, 0.06);
+            transition: 0.3s;
+        }
+
+        .flag-box.neutral {
+            border-color: var(--neon-lime);
+        }
+
+        .flag-box.success {
+            border-color: var(--neon-green);
+            background: rgba(0, 255, 136, 0.1);
+        }
+
+        .flag-box.error {
+            border-color: var(--neon-red);
+            background: rgba(255, 0, 85, 0.1);
+        }
+
+        .flag-box h3 {
+            margin-top: 0;
+            color: #fff;
+            display: flex;
+            justify-content: space-between;
+            gap: 20px;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 15px;
+            margin-bottom: 10px;
+            background: #000;
+            border: 1px solid #333;
+            color: #fff;
+            font-family: inherit;
+            box-sizing: border-box;
+            font-size: 1rem;
+            transition: 0.3s;
+        }
+
+        input[type="text"]:focus {
+            border-color: var(--neon-lime);
+            outline: none;
+            box-shadow: 0 0 10px rgba(183, 255, 60, 0.35);
+        }
+
+        .btn-validate-all {
+            width: 100%;
+            padding: 20px;
+            font-size: 1.2rem;
+            margin-top: 20px;
+            font-weight: bold;
+        }
+
+        .right-panel {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+        }
+
+        .btn-massive {
+            width: 100%;
+            height: 250px;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 2rem;
+            font-weight: 900;
+            border: 2px solid var(--neon-lime);
+            color: var(--neon-lime);
+            background: rgba(183, 255, 60, 0.06);
+            transition: 0.4s;
+            cursor: pointer;
+            flex-shrink: 0;
+            text-shadow: 0 0 10px rgba(183, 255, 60, 0.5);
+        }
+
+        .btn-massive:hover {
+            background: var(--neon-lime);
+            color: #000;
+            box-shadow: 0 0 40px var(--neon-lime);
+            transform: scale(1.02);
+            text-shadow: none;
+        }
+
+        .txt-success {
+            color: var(--neon-green);
+            font-weight: bold;
+        }
+
+        .txt-error {
+            color: var(--neon-red);
+            font-weight: bold;
+        }
+
+        .hints-container {
+            margin-top: 30px;
+            width: 100%;
+        }
+
+        .hints-title {
+            font-family: 'Orbitron', sans-serif;
+            color: var(--neon-lime);
+            font-size: 1.2rem;
+            margin-bottom: 15px;
+            border-bottom: 1px solid rgba(183, 255, 60, 0.3);
+            padding-bottom: 5px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            text-shadow: 0 0 10px rgba(183, 255, 60, 0.5);
+        }
+
+        .hint-box {
+            margin-bottom: 15px;
+            border: 1px solid rgba(183, 255, 60, 0.35);
+            background: rgba(0,0,0,0.6);
+            border-radius: 3px;
+            transition: 0.3s;
+        }
+
+        .hint-box summary {
+            padding: 15px;
+            color: #fff;
+            cursor: pointer;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 0.9rem;
+            font-weight: bold;
+            list-style: none;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            text-transform: uppercase;
+        }
+
+        .hint-box summary::-webkit-details-marker {
+            display: none;
+        }
+
+        .hint-box summary::after {
+            content: '[ + ]';
+            font-family: 'Share Tech Mono', monospace;
+            color: var(--neon-lime);
+            transition: 0.3s;
+        }
+
+        .hint-box[open] summary::after {
+            content: '[ - ]';
+            color: #fff;
+        }
+
+        .hint-box summary:hover {
+            background: rgba(183, 255, 60, 0.08);
+            color: var(--neon-lime);
+        }
+
+        .hint-content {
+            padding: 15px;
+            border-top: 1px solid rgba(183, 255, 60, 0.15);
+            color: #ccc;
+            font-size: 0.9rem;
+            line-height: 1.6;
+        }
+
+        .hint-item {
+            margin-bottom: 15px;
+            padding-left: 15px;
+            border-left: 2px solid var(--neon-lime);
+        }
+
+        .hint-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .hint-item strong {
+            color: #fff;
+        }
+
+        .cmd-tag {
+            background: rgba(183,255,60,0.14);
+            color: #fff;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: monospace;
+            border: 1px solid var(--neon-lime);
+        }
+
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.88);
+            backdrop-filter: blur(5px);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            padding: 20px;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: #050505;
+            border: 2px solid var(--neon-lime);
+            padding: 40px;
+            max-width: 760px;
+            width: 100%;
+            text-align: left;
+            box-shadow: 0 0 30px rgba(183, 255, 60, 0.18);
+            position: relative;
+        }
+
+        .modal-content h2 {
+            color: var(--neon-lime);
+            font-family: 'Orbitron', sans-serif;
+            margin-top: 0;
+            font-size: 1.8rem;
+            text-align: center;
+            text-shadow: 0 0 10px rgba(183, 255, 60, 0.45);
+        }
+
+        .modal-content p {
+            color: #aaa;
+            margin-bottom: 24px;
+            font-size: 1.02rem;
+            line-height: 1.6;
+            text-align: center;
+        }
+
+        .btn-close-modal {
+            position: absolute;
+            top: 10px;
+            right: 15px;
+            background: transparent;
+            border: none;
+            color: var(--neon-lime);
+            font-size: 1.5rem;
+            cursor: pointer;
+            font-family: 'Share Tech Mono', monospace;
+        }
+
+        .btn-close-modal:hover {
+            color: var(--neon-red);
+        }
+
+        .connection-box {
+            margin-bottom: 15px;
+            border: 1px solid rgba(183, 255, 60, 0.35);
+            background: rgba(183, 255, 60, 0.04);
+        }
+
+        .connection-box summary {
+            padding: 18px;
+            cursor: pointer;
+            list-style: none;
+            font-family: 'Orbitron', sans-serif;
+            color: #fff;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            text-transform: uppercase;
+        }
+
+        .connection-box summary::-webkit-details-marker {
+            display: none;
+        }
+
+        .connection-box summary::after {
+            content: '[ + ]';
+            color: var(--neon-lime);
+            font-family: 'Share Tech Mono', monospace;
+        }
+
+        .connection-box[open] summary::after {
+            content: '[ - ]';
+            color: #fff;
+        }
+
+        .connection-box summary:hover {
+            background: rgba(183, 255, 60, 0.08);
+            color: var(--neon-lime);
+        }
+
+        .connection-content {
+            padding: 18px;
+            border-top: 1px solid rgba(183, 255, 60, 0.15);
+        }
+
+        .connection-url {
+            display: block;
+            padding: 14px;
+            background: #000;
+            border: 1px solid rgba(183, 255, 60, 0.25);
+            color: var(--neon-lime-strong);
+            margin-bottom: 12px;
+            word-break: break-all;
+        }
+
+        .btn-redirect {
+            display: inline-block;
+            padding: 12px 16px;
+            background: transparent;
+            border: 1px solid var(--neon-lime);
+            color: var(--neon-lime);
+            text-decoration: none;
+            text-transform: uppercase;
+            transition: 0.3s;
+            font-weight: bold;
+        }
+
+        .btn-redirect:hover {
+            background: var(--neon-lime);
+            color: #000;
+            box-shadow: 0 0 18px var(--neon-lime);
+        }
+
+        @media (max-width: 1000px) {
+            .split-container {
+                grid-template-columns: 1fr;
+                gap: 30px;
+                padding: 30px 20px;
+            }
+
+            nav {
+                flex-direction: column;
+                gap: 15px;
+                padding: 20px;
+                text-align: center;
+            }
+
+            .btn-massive {
+                height: 180px;
+                font-size: 1.5rem;
+            }
+
+            .modal-content {
+                padding: 30px 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<nav>
+    <div style="font-family:'Orbitron', sans-serif; color:var(--neon-lime); font-size: 1.2rem; font-weight: bold;">
+        NIVEL_1 // APACHE
+    </div>
+    <div>
+        <span style="margin-right: 20px;">
+            AGENTE:
+            <span style="color:var(--neon-lime);">
+                <?php echo htmlspecialchars($_SESSION['username']); ?>
+            </span>
+        </span>
+        <button class="btn" onclick="location.href='index.php'">VOLVER AL HUB</button>
+    </div>
+</nav>
+
+<div class="split-container">
+    <div class="left-panel">
+        <h2>VALIDACIÓN DE FLAGS</h2>
+        <p>Introduce la flag obtenida en el sistema objetivo. Los puntos solo se otorgan una única vez por flag.</p>
+
+        <form method="POST">
+            <?php foreach ($flags_reales as $f_id => $data): ?>
+                <div class="flag-box <?php echo $estados[$f_id]; ?>">
+                    <h3>
+                        <?php echo $data['titulo']; ?>
+                        <span style="font-size: 0.9rem; color: gray;">
+                            <?php echo $data['puntos']; ?> XP
+                        </span>
+                    </h3>
+                    <input
+                        type="text"
+                        name="<?php echo $f_id; ?>"
+                        placeholder="Introduce la cadena de texto de la flag"
+                        value="<?php echo htmlspecialchars($_POST[$f_id] ?? ''); ?>"
+                    >
+                    <div><?php echo $mensajes[$f_id]; ?></div>
+                </div>
+            <?php endforeach; ?>
+
+            <button type="submit" class="btn btn-validate-all" style="border-color:var(--neon-lime); color:var(--neon-lime);">
+                EJECUTAR VALIDACIÓN
+            </button>
+        </form>
+    </div>
+
+    <div class="right-panel">
+        <button type="button" class="btn btn-massive" onclick="openConnectionModal()">
+            INICIAR MISIÓN<br><br>
+            <span style="font-size: 1.2rem; font-family: 'Share Tech Mono', monospace; text-shadow: none;">APACHE ACCESS GRID</span><br>
+            <span style="font-size: 1rem; color: #fff;">[ WEB TARGETS ]</span>
+        </button>
+
+        <div class="hints-container">
+            <div class="hints-title">ARCHIVOS CON PISTAS</div>
+
+            <details class="hint-box">
+                <summary>DATA_LINK // FLAG 1</summary>
+                <div class="hint-content">
+                    <div class="hint-item">
+                        <strong>Información:</strong> Pista aún no definida.
+                    </div>
+                    <div class="hint-item">
+                        <strong>Comandos sugeridos:</strong>
+                        <span class="cmd-tag">pendiente</span>
+                    </div>
+                </div>
+            </details>
+
+            <details class="hint-box">
+                <summary>DATA_LINK // FLAG 2</summary>
+                <div class="hint-content">
+                    <div class="hint-item">
+                        <strong>Información:</strong> Pista aún no definida.
+                    </div>
+                    <div class="hint-item">
+                        <strong>Comandos sugeridos:</strong>
+                        <span class="cmd-tag">pendiente</span>
+                    </div>
+                </div>
+            </details>
+
+            <details class="hint-box">
+                <summary>DATA_LINK // FLAG 3</summary>
+                <div class="hint-content">
+                    <div class="hint-item">
+                        <strong>Información:</strong> Pista aún no definida.
+                    </div>
+                    <div class="hint-item">
+                        <strong>Comandos sugeridos:</strong>
+                        <span class="cmd-tag">pendiente</span>
+                    </div>
+                </div>
+            </details>
+        </div>
+    </div>
+</div>
+
+<div id="connectionModal" class="modal-overlay">
+    <div class="modal-content">
+        <button type="button" class="btn-close-modal" onclick="closeConnectionModal()">X</button>
+        <h2>CONEXIÓN</h2>
+        <p>
+            Agente, los entornos Apache del Nivel 1 están distribuidos en tres objetivos independientes.
+            Debes acceder a cada uno por separado, inspeccionar su contenido y localizar la información
+            necesaria para recuperar las flags del sistema.
+        </p>
+
+        <details class="connection-box">
+            <summary>NIVEL 1</summary>
+            <div class="connection-content">
+                <span class="connection-url">http://100.50.208.195:8081</span>
+                <a class="btn-redirect" href="http://100.50.208.195:8081" target="_blank" rel="noopener noreferrer">
+                    ACCEDER A LA URL DEL NIVEL 1
+                </a>
+            </div>
+        </details>
+
+        <details class="connection-box">
+            <summary>NIVEL 2</summary>
+            <div class="connection-content">
+                <span class="connection-url">http://100.50.208.195:8082</span>
+                <a class="btn-redirect" href="http://100.50.208.195:8082" target="_blank" rel="noopener noreferrer">
+                    ACCEDER A LA URL DEL NIVEL 2
+                </a>
+            </div>
+        </details>
+
+        <details class="connection-box">
+            <summary>NIVEL 3</summary>
+            <div class="connection-content">
+                <span class="connection-url">http://100.50.208.195:8083</span>
+                <a class="btn-redirect" href="http://100.50.208.195:8083" target="_blank" rel="noopener noreferrer">
+                    ACCEDER A LA URL DEL NIVEL 3
+                </a>
+            </div>
+        </details>
+    </div>
+</div>
+
+<script>
+    function openConnectionModal() {
+        const modal = document.getElementById('connectionModal');
+        if (modal) {
+            modal.classList.add('active');
+        }
+    }
+
+    function closeConnectionModal() {
+        const modal = document.getElementById('connectionModal');
+        if (modal) {
+            modal.classList.remove('active');
+        }
+    }
+
+    window.addEventListener('click', function(event) {
+        const modal = document.getElementById('connectionModal');
+        if (event.target === modal) {
+            closeConnectionModal();
+        }
+    });
+
+    window.addEventListener('keydown', function(event) {
+        if (event.key === 'Escape') {
+            closeConnectionModal();
+        }
+    });
+</script>
+
+</body>
+</html>
+
+===== nivel2.php =====
+<?php
+session_start();
+require_once 'db.php';
+
+if (!isset($_SESSION['user_id'])) {
+    header("Location: index.php");
+    exit;
+}
+
+$flags_reales = [
+    'f1' => [
+        'flag' => 'nOu3t7WfJnZ9tzU0S1lA',
+        'puntos' => 100,
+        'titulo' => 'FLAG 1 - Bypass Básico'
+    ],
+    'f2' => [
+        'flag' => 'kR1p8vXmQjL4nH2bS9wZ',
+        'puntos' => 250,
+        'titulo' => 'FLAG 2 - Extracción de Archivos'
+    ],
+    'f3' => [
+        'flag' => 'mJ8pL2wN5vX9zQ1rT4bS',
+        'puntos' => 500,
+        'titulo' => 'FLAG 3 - Vault Secreto'
+    ]
+];
+
+$estados = [
+    'f1' => 'neutral',
+    'f2' => 'neutral',
+    'f3' => 'neutral'
+];
+
+$mensajes = [
+    'f1' => '',
+    'f2' => '',
+    'f3' => ''
+];
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $user_id = $_SESSION['user_id'];
+
+    foreach ($flags_reales as $f_id => $data) {
+        $input = trim($_POST[$f_id] ?? '');
+        if ($input === '') {
+            continue;
+        }
+
+        if ($input === $data['flag']) {
+            $stmt = $pdo->prepare("SELECT COUNT(*) FROM flags_resueltas WHERE user_id = ? AND flag_id = ?");
+            $stmt->execute([$user_id, $f_id]);
+            $ya_resuelta = $stmt->fetchColumn() > 0;
+
+            if ($ya_resuelta) {
+                $estados[$f_id] = 'success';
+                $mensajes[$f_id] = "<span class='txt-success'>[ FLAG YA RECLAMADA - NO SUMA XP ]</span>";
+            } else {
+                try {
+                    $pdo->beginTransaction();
+
+                    $update = $pdo->prepare("UPDATE usuarios SET puntos = puntos + ? WHERE id = ?");
+                    $update->execute([$data['puntos'], $user_id]);
+
+                    $insert = $pdo->prepare("INSERT INTO flags_resueltas (user_id, flag_id) VALUES (?, ?)");
+                    $insert->execute([$user_id, $f_id]);
+
+                    $pdo->commit();
+
+                    $estados[$f_id] = 'success';
+                    $mensajes[$f_id] = "<span class='txt-success'>[ + {$data['puntos']} XP AÑADIDOS ]</span>";
+                } catch (Exception $e) {
+                    if ($pdo->inTransaction()) {
+                        $pdo->rollBack();
+                    }
+                    $estados[$f_id] = 'error';
+                    $mensajes[$f_id] = "<span class='txt-error'>[ ERROR DE SINCRONIZACIÓN CON LA DB ]</span>";
+                }
+            }
+        } else {
+            $estados[$f_id] = 'error';
+            $mensajes[$f_id] = "<span class='txt-error'>[ ERROR: FLAG INCORRECTA ]</span>";
+        }
+    }
+}
+?>
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>XPLOIT // NIVEL 2 VALIDATOR</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --neon-orange: #ffaa00;
+            --neon-orange-strong: #ffc94d;
+            --neon-green: #00ff88;
+            --neon-red: #ff0055;
+            --bg-dark: #020406;
+        }
+
+        body {
+            background: var(--bg-dark);
+            color: #fff;
+            font-family: 'Share Tech Mono', monospace;
+            margin: 0;
+            background-image: radial-gradient(circle at 50% 50%, #1b1100 0%, #020406 100%);
+            min-height: 100vh;
+        }
+
+        nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 50px;
+            border-bottom: 1px solid rgba(255, 170, 0, 0.25);
+            backdrop-filter: blur(10px);
+        }
+
+        .btn {
+            background: transparent;
+            border: 1px solid var(--neon-orange);
+            color: var(--neon-orange);
+            padding: 10px 20px;
+            cursor: pointer;
+            font-family: inherit;
+            transition: 0.3s;
+            text-transform: uppercase;
+        }
+
+        .btn:hover {
+            background: var(--neon-orange);
+            color: #000;
+            box-shadow: 0 0 20px var(--neon-orange);
+        }
+
+        .split-container {
+            display: grid;
+            grid-template-columns: 60% 35%;
+            gap: 5%;
+            padding: 50px;
+            max-width: 1400px;
+            margin: auto;
+        }
+
+        .left-panel {
+            background: rgba(0,0,0,0.4);
+            border: 1px solid rgba(255, 170, 0, 0.3);
+            padding: 40px;
+            border-radius: 5px;
+            height: fit-content;
+        }
+
+        .left-panel h2 {
+            color: var(--neon-orange);
+            font-family: 'Orbitron', sans-serif;
+            font-size: 2rem;
+            margin-top: 0;
+            text-shadow: 0 0 10px rgba(255, 170, 0, 0.45);
+        }
+
+        .left-panel p {
+            color: #ccc;
+            font-size: 1.1rem;
+            margin-bottom: 40px;
+        }
+
+        .flag-box {
+            margin-bottom: 30px;
+            padding: 20px;
+            border-left: 4px solid var(--neon-orange);
+            background: rgba(255, 170, 0, 0.06);
+            transition: 0.3s;
+        }
+
+        .flag-box.neutral {
+            border-color: var(--neon-orange);
+        }
+
+        .flag-box.success {
+            border-color: var(--neon-green);
+            background: rgba(0, 255, 136, 0.1);
+        }
+
+        .flag-box.error {
+            border-color: var(--neon-red);
+            background: rgba(255, 0, 85, 0.1);
+        }
+
+        .flag-box h3 {
+            margin-top: 0;
+            color: #fff;
+            display: flex;
+            justify-content: space-between;
+            gap: 20px;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 15px;
+            margin-bottom: 10px;
+            background: #000;
+            border: 1px solid #333;
+            color: #fff;
+            font-family: inherit;
+            box-sizing: border-box;
+            font-size: 1rem;
+            transition: 0.3s;
+        }
+
+        input[type="text"]:focus {
+            border-color: var(--neon-orange);
+            outline: none;
+            box-shadow: 0 0 10px rgba(255, 170, 0, 0.35);
+        }
+
+        .btn-validate-all {
+            width: 100%;
+            padding: 20px;
+            font-size: 1.2rem;
+            margin-top: 20px;
+            font-weight: bold;
+        }
+
+        .right-panel {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+        }
+
+        .btn-massive {
+            width: 100%;
+            height: 250px;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 2rem;
+            font-weight: 900;
+            border: 2px solid var(--neon-orange);
+            color: var(--neon-orange);
+            background: rgba(255, 170, 0, 0.06);
+            transition: 0.4s;
+            cursor: pointer;
+            flex-shrink: 0;
+            text-shadow: 0 0 10px rgba(255, 170, 0, 0.45);
+        }
+
+        .btn-massive:hover {
+            background: var(--neon-orange);
+            color: #000;
+            box-shadow: 0 0 40px var(--neon-orange);
+            transform: scale(1.02);
+            text-shadow: none;
+        }
+
+        .txt-success {
+            color: var(--neon-green);
+            font-weight: bold;
+        }
+
+        .txt-error {
+            color: var(--neon-red);
+            font-weight: bold;
+        }
+
+        .hints-container {
+            margin-top: 30px;
+            width: 100%;
+        }
+
+        .hints-title {
+            font-family: 'Orbitron', sans-serif;
+            color: var(--neon-orange);
+            font-size: 1.2rem;
+            margin-bottom: 15px;
+            border-bottom: 1px solid rgba(255, 170, 0, 0.3);
+            padding-bottom: 5px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            text-shadow: 0 0 10px rgba(255, 170, 0, 0.45);
+        }
+
+        .hint-box {
+            margin-bottom: 15px;
+            border: 1px solid rgba(255, 170, 0, 0.35);
+            background: rgba(0,0,0,0.6);
+            border-radius: 3px;
+            transition: 0.3s;
+        }
+
+        .hint-box summary {
+            padding: 15px;
+            color: #fff;
+            cursor: pointer;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 0.9rem;
+            font-weight: bold;
+            list-style: none;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            text-transform: uppercase;
+        }
+
+        .hint-box summary::-webkit-details-marker {
+            display: none;
+        }
+
+        .hint-box summary::after {
+            content: '[ + ]';
+            font-family: 'Share Tech Mono', monospace;
+            color: var(--neon-orange);
+            transition: 0.3s;
+        }
+
+        .hint-box[open] summary::after {
+            content: '[ - ]';
+            color: #fff;
+        }
+
+        .hint-box summary:hover {
+            background: rgba(255, 170, 0, 0.08);
+            color: var(--neon-orange);
+        }
+
+        .hint-content {
+            padding: 15px;
+            border-top: 1px solid rgba(255, 170, 0, 0.15);
+            color: #ccc;
+            font-size: 0.9rem;
+            line-height: 1.6;
+        }
+
+        .hint-item {
+            margin-bottom: 15px;
+            padding-left: 15px;
+            border-left: 2px solid var(--neon-orange);
+        }
+
+        .hint-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .hint-item strong {
+            color: #fff;
+        }
+
+        .cmd-tag {
+            background: rgba(255,170,0,0.14);
+            color: #fff;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: monospace;
+            border: 1px solid var(--neon-orange);
+        }
+
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.88);
+            backdrop-filter: blur(5px);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            padding: 20px;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: #050505;
+            border: 2px solid var(--neon-orange);
+            padding: 40px;
+            max-width: 760px;
+            width: 100%;
+            text-align: left;
+            box-shadow: 0 0 30px rgba(255, 170, 0, 0.18);
+            position: relative;
+        }
+
+        .modal-content h2 {
+            color: var(--neon-orange);
+            font-family: 'Orbitron', sans-serif;
+            margin-top: 0;
+            font-size: 1.8rem;
+            text-align: center;
+            text-shadow: 0 0 10px rgba(255, 170, 0, 0.45);
+        }
+
+        .modal-content p {
+            color: #aaa;
+            margin-bottom: 24px;
+            font-size: 1.02rem;
+            line-height: 1.6;
+            text-align: center;
+        }
+
+        .btn-close-modal {
+            position: absolute;
+            top: 10px;
+            right: 15px;
+            background: transparent;
+            border: none;
+            color: var(--neon-orange);
+            font-size: 1.5rem;
+            cursor: pointer;
+            font-family: 'Share Tech Mono', monospace;
+        }
+
+        .btn-close-modal:hover {
+            color: var(--neon-red);
+        }
+
+        .connection-box {
+            margin-bottom: 15px;
+            border: 1px solid rgba(255, 170, 0, 0.35);
+            background: rgba(255, 170, 0, 0.04);
+        }
+
+        .connection-box summary {
+            padding: 18px;
+            cursor: pointer;
+            list-style: none;
+            font-family: 'Orbitron', sans-serif;
+            color: #fff;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            text-transform: uppercase;
+        }
+
+        .connection-box summary::-webkit-details-marker {
+            display: none;
+        }
+
+        .connection-box summary::after {
+            content: '[ + ]';
+            color: var(--neon-orange);
+            font-family: 'Share Tech Mono', monospace;
+        }
+
+        .connection-box[open] summary::after {
+            content: '[ - ]';
+            color: #fff;
+        }
+
+        .connection-box summary:hover {
+            background: rgba(255, 170, 0, 0.08);
+            color: var(--neon-orange);
+        }
+
+        .connection-content {
+            padding: 18px;
+            border-top: 1px solid rgba(255, 170, 0, 0.15);
+        }
+
+        .connection-url {
+            display: block;
+            padding: 14px;
+            background: #000;
+            border: 1px solid rgba(255, 170, 0, 0.25);
+            color: var(--neon-orange-strong);
+            margin-bottom: 12px;
+            word-break: break-all;
+        }
+
+        .btn-redirect {
+            display: inline-block;
+            padding: 12px 16px;
+            background: transparent;
+            border: 1px solid var(--neon-orange);
+            color: var(--neon-orange);
+            text-decoration: none;
+            text-transform: uppercase;
+            transition: 0.3s;
+            font-weight: bold;
+        }
+
+        .btn-redirect:hover {
+            background: var(--neon-orange);
+            color: #000;
+            box-shadow: 0 0 18px var(--neon-orange);
+        }
+
+        @media (max-width: 1000px) {
+            .split-container {
+                grid-template-columns: 1fr;
+                gap: 30px;
+                padding: 30px 20px;
+            }
+
+            nav {
+                flex-direction: column;
+                gap: 15px;
+                padding: 20px;
+                text-align: center;
+            }
+
+            .btn-massive {
+                height: 180px;
+                font-size: 1.5rem;
+            }
+
+            .modal-content {
+                padding: 30px 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<nav>
+    <div style="font-family:'Orbitron', sans-serif; color:var(--neon-orange); font-size: 1.2rem; font-weight: bold;">
+        NIVEL_2 // MYSQL
+    </div>
+    <div>
+        <span style="margin-right: 20px;">
+            AGENTE:
+            <span style="color:var(--neon-orange);">
+                <?php echo htmlspecialchars($_SESSION['username']); ?>
+            </span>
+        </span>
+        <button class="btn" onclick="location.href='index.php'">VOLVER AL HUB</button>
+    </div>
+</nav>
+
+<div class="split-container">
+    <div class="left-panel">
+        <h2>VALIDACIÓN DE FLAGS</h2>
+        <p>Introduce la flag obtenida en el sistema objetivo. Los puntos solo se otorgan una única vez por flag.</p>
+
+        <form method="POST">
+            <?php foreach ($flags_reales as $f_id => $data): ?>
+                <div class="flag-box <?php echo $estados[$f_id]; ?>">
+                    <h3>
+                        <?php echo $data['titulo']; ?>
+                        <span style="font-size: 0.9rem; color: gray;">
+                            <?php echo $data['puntos']; ?> XP
+                        </span>
+                    </h3>
+                    <input
+                        type="text"
+                        name="<?php echo $f_id; ?>"
+                        placeholder="Introduce la cadena de texto de la flag"
+                        value="<?php echo htmlspecialchars($_POST[$f_id] ?? ''); ?>"
+                    >
+                    <div><?php echo $mensajes[$f_id]; ?></div>
+                </div>
+            <?php endforeach; ?>
+
+            <button type="submit" class="btn btn-validate-all" style="border-color:var(--neon-orange); color:var(--neon-orange);">
+                EJECUTAR VALIDACIÓN
+            </button>
+        </form>
+    </div>
+
+    <div class="right-panel">
+        <button type="button" class="btn btn-massive" onclick="openConnectionModal()">
+            INICIAR MISIÓN<br><br>
+            <span style="font-size: 1.2rem; font-family: 'Share Tech Mono', monospace; text-shadow: none;">MYSQL INJECTION GRID</span><br>
+            <span style="font-size: 1rem; color: #fff;">[ PORT 6969 ]</span>
+        </button>
+
+        <div class="hints-container">
+            <div class="hints-title">ARCHIVOS CON PISTAS</div>
+
+            <details class="hint-box">
+                <summary>DATA_LINK // FLAG 1</summary>
+                <div class="hint-content">
+                    <div class="hint-item">
+                        <strong>Información:</strong> Sabemos que existe un usuario con privilegios máximos llamado <span class="cmd-tag">admin</span>. El objetivo es conseguir que la consulta lo acepte sin comprobar realmente la contraseña.
+                    </div>
+                    <div class="hint-item">
+                        <strong>Pista técnica:</strong> En SQL, <span class="cmd-tag">--</span> puede comentar lo que viene después. Piensa en un bypass clásico del login.
+                    </div>
+                </div>
+            </details>
+
+            <details class="hint-box">
+                <summary>DATA_LINK // FLAG 2</summary>
+                <div class="hint-content">
+                    <div class="hint-item">
+                        <strong>Información:</strong> Para sacar datos de otra tabla tendrás que romper la consulta y usar <span class="cmd-tag">UNION SELECT</span>.
+                    </div>
+                    <div class="hint-item">
+                        <strong>Pista técnica:</strong> La consulta original parece devolver 3 columnas. El objetivo es la tabla <span class="cmd-tag">archivosconfidenciales</span> y su contenido.
+                    </div>
+                </div>
+            </details>
+
+            <details class="hint-box">
+                <summary>DATA_LINK // FLAG 3</summary>
+                <div class="hint-content">
+                    <div class="hint-item">
+                        <strong>Información:</strong> El patrón es muy similar al de la Flag 2, pero esta vez la información valiosa está en una tabla más sensible.
+                    </div>
+                    <div class="hint-item">
+                        <strong>Pista técnica:</strong> Busca la tabla <span class="cmd-tag">xploitvaulttopsecret</span> y extrae la columna <span class="cmd-tag">secretkey</span>.
+                    </div>
+                </div>
+            </details>
+        </div>
+    </div>
+</div>
+
+<div id="connectionModal" class="modal-overlay">
+    <div class="modal-content">
+        <button type="button" class="btn-close-modal" onclick="closeConnectionModal()">X</button>
+        <h2>CONEXIÓN</h2>
+        <p>
+            Agente, el laboratorio SQL del Nivel 2 está expuesto sobre el puerto 6969.
+            Puedes entrar al mismo entorno desde tres accesos guiados, uno por cada objetivo de flag.
+        </p>
+
+        <details class="connection-box">
+            <summary>FLAG 1 // BYPASS BÁSICO</summary>
+            <div class="connection-content">
+                <span class="connection-url" id="urlFlag1">http://IP_DEL_SERVIDOR:6969</span>
+                <a class="btn-redirect" href="#" onclick="openTarget(event)">
+                    ACCEDER AL NIVEL 2
+                </a>
+            </div>
+        </details>
+
+        <details class="connection-box">
+            <summary>FLAG 2 // EXTRACCIÓN DE ARCHIVOS</summary>
+            <div class="connection-content">
+                <span class="connection-url" id="urlFlag2">http://IP_DEL_SERVIDOR:6969</span>
+                <a class="btn-redirect" href="#" onclick="openTarget(event)">
+                    ACCEDER AL NIVEL 2
+                </a>
+            </div>
+        </details>
+
+        <details class="connection-box">
+            <summary>FLAG 3 // VAULT SECRETO</summary>
+            <div class="connection-content">
+                <span class="connection-url" id="urlFlag3">http://IP_DEL_SERVIDOR:6969</span>
+                <a class="btn-redirect" href="#" onclick="openTarget(event)">
+                    ACCEDER AL NIVEL 2
+                </a>
+            </div>
+        </details>
+    </div>
+</div>
+
+<script>
+    function buildTargetUrl() {
+        const protocol = window.location.protocol + '//';
+        const host = window.location.hostname;
+        return protocol + host + ':6969';
+    }
+
+    function openConnectionModal() {
+        const modal = document.getElementById('connectionModal');
+        const finalUrl = buildTargetUrl();
+
+        document.getElementById('urlFlag1').textContent = finalUrl;
+        document.getElementById('urlFlag2').textContent = finalUrl;
+        document.getElementById('urlFlag3').textContent = finalUrl;
+
+        if (modal) {
+            modal.classList.add('active');
+        }
+    }
+
+    function closeConnectionModal() {
+        const modal = document.getElementById('connectionModal');
+        if (modal) {
+            modal.classList.remove('active');
+        }
+    }
+
+    function openTarget(event) {
+        event.preventDefault();
+        window.open(buildTargetUrl(), '_blank');
+    }
+
+    window.addEventListener('click', function(event) {
+        const modal = document.getElementById('connectionModal');
+        if (event.target === modal) {
+            closeConnectionModal();
+        }
+    });
+
+    window.addEventListener('keydown', function(event) {
+        if (event.key === 'Escape') {
+            closeConnectionModal();
+        }
+    });
+</script>
+
+</body>
+</html>
+
+===== nivel3.php =====
+<?php
+session_start();
+require_once 'db.php';
+
+// SEGURIDAD: Bloqueo sin sesión
+if (!isset($_SESSION['user_id'])) {
+    header("Location: index.php");
+    exit;
+}
+
+// Configuración de las Flags del Nivel 3 (DATOS REALES)
+$flags_reales = [
+    'lvl3_f1' => [
+        'flag' => '0R9MCObUHzK6cslk35pC',
+        'puntos' => 150,
+        'titulo' => 'FLAG 1 - Directorios Base'
+    ],
+    'lvl3_f2' => [
+        'flag' => 'n54Nl0X13FlAA9D1JBxe',
+        'puntos' => 300,
+        'titulo' => 'FLAG 2 - Filtrado de Texto'
+    ],
+    'lvl3_f3' => [
+        'flag' => 'm7dXY8rHWmlzloS20VQ8',
+        'puntos' => 600,
+        'titulo' => 'FLAG 3 - Búsqueda por Owner'
+    ],
+    'lvl3_f4' => [
+        'flag' => 'QzWwOa22Z129EKruLuDZ',
+        'puntos' => 1000,
+        'titulo' => 'FLAG 4 - Deep Access'
+    ]
+];
+
+// Estados iniciales
+$estados = [
+    'lvl3_f1' => 'neutral',
+    'lvl3_f2' => 'neutral',
+    'lvl3_f3' => 'neutral',
+    'lvl3_f4' => 'neutral'
+];
+
+$mensajes = [
+    'lvl3_f1' => '',
+    'lvl3_f2' => '',
+    'lvl3_f3' => '',
+    'lvl3_f4' => ''
+];
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $user_id = $_SESSION['user_id'];
+
+    foreach ($flags_reales as $f_id => $data) {
+        $input = trim($_POST[$f_id] ?? '');
+
+        if ($input === '') continue;
+
+        if ($input === $data['flag']) {
+            $stmt = $pdo->prepare("SELECT COUNT(*) FROM flags_resueltas WHERE user_id = ? AND flag_id = ?");
+            $stmt->execute([$user_id, $f_id]);
+            $ya_resuelta = $stmt->fetchColumn() > 0;
+
+            if ($ya_resuelta) {
+                $estados[$f_id] = 'success';
+                $mensajes[$f_id] = "<span class='txt-success'>[ FLAG YA RECLAMADA - NO SUMA XP ]</span>";
+            } else {
+                try {
+                    $pdo->beginTransaction();
+
+                    $update = $pdo->prepare("UPDATE usuarios SET puntos = puntos + ? WHERE id = ?");
+                    $update->execute([$data['puntos'], $user_id]);
+
+                    $insert = $pdo->prepare("INSERT INTO flags_resueltas (user_id, flag_id) VALUES (?, ?)");
+                    $insert->execute([$user_id, $f_id]);
+
+                    $pdo->commit();
+
+                    $estados[$f_id] = 'success';
+                    $mensajes[$f_id] = "<span class='txt-success'>[ + {$data['puntos']} XP AÑADIDOS ]</span>";
+                } catch (Exception $e) {
+                    if ($pdo->inTransaction()) {
+                        $pdo->rollBack();
+                    }
+                    $estados[$f_id] = 'error';
+                    $mensajes[$f_id] = "<span class='txt-error'>[ ERROR DE SINCRONIZACIÓN CON LA DB ]</span>";
+                }
+            }
+        } else {
+            $estados[$f_id] = 'error';
+            $mensajes[$f_id] = "<span class='txt-error'>[ ERROR: FLAG INCORRECTA ]</span>";
+        }
+    }
+}
+?>
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>XPLOIT // NIVEL 3 VALIDATOR</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --neon-purple: #bd00ff;
+            --neon-green: #00ff88;
+            --neon-red: #ff0055;
+            --bg-dark: #020406;
+        }
+
+        body {
+            background: var(--bg-dark);
+            color: #fff;
+            font-family: 'Share Tech Mono', monospace;
+            margin: 0;
+            background-image: radial-gradient(circle at 50% 50%, #10051a 0%, #020406 100%);
+            min-height: 100vh;
+        }
+
+        nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 50px;
+            border-bottom: 1px solid rgba(189, 0, 255, 0.2);
+            backdrop-filter: blur(10px);
+        }
+
+        .btn {
+            background: transparent;
+            border: 1px solid var(--neon-purple);
+            color: var(--neon-purple);
+            padding: 10px 20px;
+            cursor: pointer;
+            font-family: inherit;
+            transition: 0.3s;
+            text-transform: uppercase;
+        }
+
+        .btn:hover {
+            background: var(--neon-purple);
+            color: #000;
+            box-shadow: 0 0 20px var(--neon-purple);
+        }
+
+        .split-container {
+            display: grid;
+            grid-template-columns: 60% 35%;
+            gap: 5%;
+            padding: 50px;
+            max-width: 1400px;
+            margin: auto;
+        }
+
+        .left-panel {
+            background: rgba(0,0,0,0.4);
+            border: 1px solid rgba(189, 0, 255, 0.3);
+            padding: 40px;
+            border-radius: 5px;
+            height: fit-content;
+        }
+
+        .left-panel h2 {
+            color: var(--neon-purple);
+            font-family: 'Orbitron', sans-serif;
+            font-size: 2rem;
+            margin-top: 0;
+            text-shadow: 0 0 10px rgba(189, 0, 255, 0.5);
+        }
+
+        .left-panel p {
+            color: #ccc;
+            font-size: 1.1rem;
+            margin-bottom: 40px;
+        }
+
+        .flag-box {
+            margin-bottom: 30px;
+            padding: 20px;
+            border-left: 4px solid var(--neon-purple);
+            background: rgba(189, 0, 255, 0.05);
+            transition: 0.3s;
+        }
+
+        .flag-box.neutral {
+            border-color: var(--neon-purple);
+        }
+
+        .flag-box.success {
+            border-color: var(--neon-green);
+            background: rgba(0, 255, 136, 0.1);
+        }
+
+        .flag-box.error {
+            border-color: var(--neon-red);
+            background: rgba(255, 0, 85, 0.1);
+        }
+
+        .flag-box h3 {
+            margin-top: 0;
+            color: #fff;
+            display: flex;
+            justify-content: space-between;
+            gap: 20px;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 15px;
+            margin-bottom: 10px;
+            background: #000;
+            border: 1px solid #333;
+            color: #fff;
+            font-family: inherit;
+            box-sizing: border-box;
+            font-size: 1rem;
+            transition: 0.3s;
+        }
+
+        input[type="text"]:focus {
+            border-color: var(--neon-purple);
+            outline: none;
+            box-shadow: 0 0 10px rgba(189, 0, 255, 0.3);
+        }
+
+        .btn-validate-all {
+            width: 100%;
+            padding: 20px;
+            font-size: 1.2rem;
+            margin-top: 20px;
+            font-weight: bold;
+        }
+
+        .right-panel {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+        }
+
+        .btn-massive {
+            width: 100%;
+            height: 250px;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 2rem;
+            font-weight: 900;
+            border: 2px solid var(--neon-purple);
+            color: var(--neon-purple);
+            background: rgba(189, 0, 255, 0.05);
+            transition: 0.4s;
+            cursor: pointer;
+            flex-shrink: 0;
+            text-shadow: 0 0 10px rgba(189, 0, 255, 0.5);
+        }
+
+        .btn-massive:hover {
+            background: var(--neon-purple);
+            color: #000;
+            box-shadow: 0 0 40px var(--neon-purple);
+            transform: scale(1.02);
+            text-shadow: none;
+        }
+
+        .txt-success {
+            color: var(--neon-green);
+            font-weight: bold;
+        }
+
+        .txt-error {
+            color: var(--neon-red);
+            font-weight: bold;
+        }
+
+        .hints-container {
+            margin-top: 30px;
+            width: 100%;
+        }
+
+        .hints-title {
+            font-family: 'Orbitron', sans-serif;
+            color: var(--neon-purple);
+            font-size: 1.2rem;
+            margin-bottom: 15px;
+            border-bottom: 1px solid rgba(189, 0, 255, 0.3);
+            padding-bottom: 5px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            text-shadow: 0 0 10px rgba(189, 0, 255, 0.5);
+        }
+
+        .hint-box {
+            margin-bottom: 15px;
+            border: 1px solid rgba(189, 0, 255, 0.4);
+            background: rgba(0,0,0,0.6);
+            border-radius: 3px;
+            transition: 0.3s;
+        }
+
+        .hint-box summary {
+            padding: 15px;
+            color: #fff;
+            cursor: pointer;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 0.9rem;
+            font-weight: bold;
+            list-style: none;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            text-transform: uppercase;
+        }
+
+        .hint-box summary::-webkit-details-marker {
+            display: none;
+        }
+
+        .hint-box summary::after {
+            content: '[ + ]';
+            font-family: 'Share Tech Mono', monospace;
+            color: var(--neon-purple);
+            transition: 0.3s;
+        }
+
+        .hint-box[open] summary::after {
+            content: '[ - ]';
+            color: #fff;
+        }
+
+        .hint-box summary:hover {
+            background: rgba(189, 0, 255, 0.1);
+            color: var(--neon-purple);
+        }
+
+        .hint-content {
+            padding: 15px;
+            border-top: 1px solid rgba(189, 0, 255, 0.2);
+            color: #ccc;
+            font-size: 0.9rem;
+            line-height: 1.6;
+        }
+
+        .hint-item {
+            margin-bottom: 15px;
+            padding-left: 15px;
+            border-left: 2px solid var(--neon-purple);
+        }
+
+        .hint-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .hint-item strong {
+            color: #fff;
+        }
+
+        .cmd-tag {
+            background: rgba(189,0,255,0.2);
+            color: #fff;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: monospace;
+            border: 1px solid var(--neon-purple);
+        }
+
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.85);
+            backdrop-filter: blur(5px);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            padding: 20px;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: #050505;
+            border: 2px solid var(--neon-purple);
+            padding: 40px;
+            max-width: 600px;
+            width: 100%;
+            text-align: center;
+            box-shadow: 0 0 30px rgba(189, 0, 255, 0.2);
+            position: relative;
+        }
+
+        .modal-content h2 {
+            color: var(--neon-purple);
+            font-family: 'Orbitron', sans-serif;
+            margin-top: 0;
+            font-size: 1.8rem;
+        }
+
+        .modal-content p {
+            color: #aaa;
+            margin-bottom: 20px;
+            font-size: 1.05rem;
+            line-height: 1.5;
+        }
+
+        .ssh-command-box {
+            background: #000;
+            border: 1px solid #333;
+            padding: 20px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 15px;
+            font-size: 1.1rem;
+            color: #fff;
+            flex-wrap: wrap;
+        }
+
+        .ssh-command-box code {
+            color: var(--neon-green);
+            word-break: break-all;
+            flex: 1;
+            text-align: left;
+        }
+
+        .btn-copy {
+            background: var(--neon-purple);
+            color: #000;
+            border: none;
+            padding: 10px 15px;
+            font-family: inherit;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.3s;
+            min-width: 120px;
+        }
+
+        .btn-copy:hover {
+            background: #fff;
+            box-shadow: 0 0 15px #fff;
+        }
+
+        .btn-close-modal {
+            position: absolute;
+            top: 10px;
+            right: 15px;
+            background: transparent;
+            border: none;
+            color: var(--neon-purple);
+            font-size: 1.5rem;
+            cursor: pointer;
+            font-family: 'Share Tech Mono', monospace;
+        }
+
+        .btn-close-modal:hover {
+            color: var(--neon-red);
+        }
+
+        .password-box {
+            margin-bottom: 20px;
+            padding: 15px;
+            background: rgba(0, 255, 136, 0.08);
+            border: 1px solid rgba(0, 255, 136, 0.35);
+            color: #fff;
+            font-size: 1rem;
+        }
+
+        .password-box strong {
+            color: var(--neon-green);
+            font-size: 1.1rem;
+        }
+
+        @media (max-width: 1000px) {
+            .split-container {
+                grid-template-columns: 1fr;
+                gap: 30px;
+                padding: 30px 20px;
+            }
+
+            nav {
+                flex-direction: column;
+                gap: 15px;
+                padding: 20px;
+                text-align: center;
+            }
+
+            .btn-massive {
+                height: 180px;
+                font-size: 1.5rem;
+            }
+
+            .modal-content {
+                padding: 30px 20px;
+            }
+
+            .ssh-command-box {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .ssh-command-box code {
+                text-align: center;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<nav>
+    <div style="font-family:'Orbitron', sans-serif; color:var(--neon-purple); font-size: 1.2rem; font-weight: bold;">
+        NIVEL_3 // LINUX_CONTAINER
+    </div>
+    <div>
+        <span style="margin-right: 20px;">
+            AGENTE:
+            <span style="color:var(--neon-purple);">
+                <?php echo htmlspecialchars($_SESSION['username']); ?>
+            </span>
+        </span>
+        <button class="btn" onclick="location.href='index.php'">VOLVER AL HUB</button>
+    </div>
+</nav>
+
+<div class="split-container">
+    <div class="left-panel">
+        <h2>VALIDACIÓN DE FLAGS</h2>
+        <p>Introduce la flag obtenida en el sistema objetivo. Los puntos solo se otorgan una única vez por flag.</p>
+
+        <form method="POST">
+            <?php foreach ($flags_reales as $f_id => $data): ?>
+                <div class="flag-box <?php echo $estados[$f_id]; ?>">
+                    <h3>
+                        <?php echo $data['titulo']; ?>
+                        <span style="font-size: 0.9rem; color: gray;">
+                            <?php echo $data['puntos']; ?> XP
+                        </span>
+                    </h3>
+                    <input
+                        type="text"
+                        name="<?php echo $f_id; ?>"
+                        placeholder="Introduce la cadena de texto de la flag"
+                        value="<?php echo htmlspecialchars($_POST[$f_id] ?? ''); ?>"
+                    >
+                    <div><?php echo $mensajes[$f_id]; ?></div>
+                </div>
+            <?php endforeach; ?>
+
+            <button type="submit" class="btn btn-validate-all" style="border-color:var(--neon-purple); color:var(--neon-purple);">
+                EJECUTAR VALIDACIÓN
+            </button>
+        </form>
+    </div>
+
+    <div class="right-panel">
+        <button type="button" class="btn btn-massive" onclick="openSshModal()">
+            INICIAR NIVEL 3<br><br>
+            <span style="font-size: 1.2rem; font-family: 'Share Tech Mono', monospace; text-shadow: none;">CONEXIÓN TERMINAL</span><br>
+            <span style="font-size: 1rem; color: #fff;">[ PROTOCOL: SSH ]</span>
+        </button>
+
+        <div class="hints-container">
+            <div class="hints-title">ARCHIVOS CON PISTAS</div>
+
+            <details class="hint-box">
+                <summary>DATA_LINK // FLAG 1</summary>
+                <div class="hint-content">
+                    <div class="hint-item">
+                        <strong>Información:</strong> La flag está en un fichero llamado "hola" dentro del home del usuario.
+                    </div>
+                    <div class="hint-item">
+                        <strong>Comandos sugeridos:</strong>
+                        <span class="cmd-tag">ls</span>
+                        <span class="cmd-tag">cat</span>
+                    </div>
+                </div>
+            </details>
+
+            <details class="hint-box">
+                <summary>DATA_LINK // FLAG 2</summary>
+                <div class="hint-content">
+                    <div class="hint-item">
+                        <strong>Información:</strong> La flag se encuentra junto a la palabra "millionth" dentro del archivo "data.txt".
+                    </div>
+                    <div class="hint-item">
+                        <strong>Comandos sugeridos:</strong>
+                        <span class="cmd-tag">grep</span>
+                        <span class="cmd-tag">cat</span>
+                        <span class="cmd-tag">ls</span>
+                    </div>
+                </div>
+            </details>
+
+            <details class="hint-box">
+                <summary>DATA_LINK // FLAG 3</summary>
+                <div class="hint-content">
+                    <div class="hint-item">
+                        <strong>Información:</strong> La flag está en algún lugar del servidor y el owner del archivo es <i>xploit3</i>.
+                    </div>
+                    <div class="hint-item">
+                        <strong>Comandos sugeridos:</strong>
+                        <span class="cmd-tag">find</span>
+                        <span class="cmd-tag">ls -l</span>
+                    </div>
+                </div>
+            </details>
+
+            <details class="hint-box">
+                <summary>DATA_LINK // FLAG 4</summary>
+                <div class="hint-content">
+                    <div class="hint-item">
+                        <strong>Información:</strong> La última flag está más oculta. Revisa rutas menos evidentes y explora directorios que no estén a simple vista.
+                    </div>
+                    <div class="hint-item">
+                        <strong>Comandos sugeridos:</strong>
+                        <span class="cmd-tag">find</span>
+                        <span class="cmd-tag">ls -la</span>
+                        <span class="cmd-tag">cat</span>
+                    </div>
+                </div>
+            </details>
+        </div>
+    </div>
+</div>
+
+<div id="sshModal" class="modal-overlay">
+    <div class="modal-content">
+        <button type="button" class="btn-close-modal" onclick="closeSshModal()">X</button>
+        <h2>CONEXIÓN</h2>
+        <p>
+            Para acceder al entorno del Nivel 3, abre tu terminal local y ejecuta el siguiente comando SSH.
+        </p>
+
+        <div class="ssh-command-box">
+            <code id="sshCommand">ssh xploit1@172.31.70.203 -p 2222</code>
+            <button type="button" id="copyBtn" class="btn-copy" onclick="copyToClipboard()">COPIAR</button>
+        </div>
+
+        <div class="password-box">
+            CONTRASEÑA: <strong>xploit1</strong>
+        </div>
+
+        <p style="font-size: 0.9rem; color: #666; margin-bottom: 0;">
+            * Conexión directa al contenedor del nivel.
+        </p>
+    </div>
+</div>
+
+<script>
+    function openSshModal() {
+        const modal = document.getElementById('sshModal');
+        if (modal) {
+            modal.classList.add('active');
+        }
+    }
+
+    function closeSshModal() {
+        const modal = document.getElementById('sshModal');
+        if (modal) {
+            modal.classList.remove('active');
+        }
+    }
+
+    function copyToClipboard() {
+        const command = document.getElementById('sshCommand');
+        const btn = document.getElementById('copyBtn');
+
+        if (!command || !btn) return;
+
+        const textToCopy = command.textContent.trim();
+        const originalText = 'COPIAR';
+
+        if (navigator.clipboard && window.isSecureContext) {
+            navigator.clipboard.writeText(textToCopy).then(function () {
+                btn.innerText = '¡COPIADO!';
+                btn.style.background = 'var(--neon-green)';
+                btn.style.color = '#000';
+
+                setTimeout(function () {
+                    btn.innerText = originalText;
+                    btn.style.background = 'var(--neon-purple)';
+                    btn.style.color = '#000';
+                }, 2000);
+            }).catch(function () {
+                fallbackCopy(textToCopy, btn, originalText);
+            });
+        } else {
+            fallbackCopy(textToCopy, btn, originalText);
+        }
+    }
+
+    function fallbackCopy(text, btn, originalText) {
+        const tempInput = document.createElement('textarea');
+        tempInput.value = text;
+        tempInput.style.position = 'fixed';
+        tempInput.style.left = '-9999px';
+        document.body.appendChild(tempInput);
+        tempInput.focus();
+        tempInput.select();
+
+        try {
+            document.execCommand('copy');
+            btn.innerText = '¡COPIADO!';
+            btn.style.background = 'var(--neon-green)';
+            btn.style.color = '#000';
+
+            setTimeout(function () {
+                btn.innerText = originalText;
+                btn.style.background = 'var(--neon-purple)';
+                btn.style.color = '#000';
+            }, 2000);
+        } catch (err) {
+            alert('Error al copiar al portapapeles.');
+        }
+
+        document.body.removeChild(tempInput);
+    }
+
+    window.addEventListener('click', function(event) {
+        const modal = document.getElementById('sshModal');
+        if (event.target === modal) {
+            closeSshModal();
+        }
+    });
+
+    window.addEventListener('keydown', function(event) {
+        if (event.key === 'Escape') {
+            closeSshModal();
+        }
+    });
+</script>
+
+</body>
+</html>
+
+===== auth.php =====
+<?php
+session_start();
+require_once 'db.php';
+
+header('Content-Type: application/json; charset=utf-8');
+ini_set('display_errors', '0');
+error_reporting(E_ALL);
+
+try {
+    $action = $_POST['action'] ?? '';
+
+    if ($action === 'login') {
+        $identifier = trim($_POST['identifier'] ?? '');
+        $password = $_POST['password'] ?? '';
+
+        $stmt = $pdo->prepare("SELECT id, username, passwordhash FROM usuarios WHERE username = ? OR email = ? LIMIT 1");
+        $stmt->execute([$identifier, $identifier]);
+        $user = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if ($user && password_verify($password, $user['passwordhash'])) {
+            $_SESSION['user_id'] = $user['id'];
+            $_SESSION['username'] = $user['username'];
+            echo json_encode(['success' => true, 'message' => 'Login correcto.']);
+        } else {
+            echo json_encode(['success' => false, 'message' => 'Credenciales inválidas.']);
+        }
+        exit;
+    }
+
+    if ($action === 'register') {
+        $nombre = trim($_POST['nombre'] ?? '');
+        $apellido = trim($_POST['apellido'] ?? '');
+        $fechanac = trim($_POST['fechanac'] ?? '');
+        $username = trim($_POST['username'] ?? '');
+        $email = trim($_POST['email'] ?? '');
+        $password = $_POST['password'] ?? '';
+
+        $hash = password_hash($password, PASSWORD_BCRYPT);
+
+        $stmt = $pdo->prepare("INSERT INTO usuarios (nombre, apellido, fechanacimiento, username, email, passwordhash, puntos) VALUES (?, ?, ?, ?, ?, ?, 0)");
+        $stmt->execute([$nombre, $apellido, $fechanac, $username, $email, $hash]);
+
+        echo json_encode(['success' => true, 'message' => 'Usuario registrado correctamente.']);
+        exit;
+    }
+
+    echo json_encode(['success' => false, 'message' => 'Acción no válida.']);
+} catch (Throwable $e) {
+    echo json_encode(['success' => false, 'message' => 'Error interno.']);
+}
+
+===== db.php =====
+<?php
+$host = '127.0.0.1';
+$port = '5432';
+$db   = 'xploitdb';
+$user = 'postgres';
+$pass = 'acm';
+
+$dsn = "pgsql:host=$host;port=$port;dbname=$db";
+
+$options = [
+    PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+    PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+];
+
+try {
+    $pdo = new PDO($dsn, $user, $pass, $options);
+} catch (PDOException $e) {
+    die('Error de conexión: ' . $e->getMessage());
+}
+?>
+
+===== logout.php =====
+<?php
+session_start();
+session_destroy();
+header("Location: index.php");
+exit;
+?>
