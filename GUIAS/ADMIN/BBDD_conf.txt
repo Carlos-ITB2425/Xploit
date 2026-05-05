@@ -1,0 +1,197 @@
+========================================
+XPLOIT - CONFIGURACION DE BASE DE DATOS
+========================================
+
+[1] MOTOR DE BASE DE DATOS
+- Sistema gestor: PostgreSQL
+- Conexión usada desde PHP: PDO con driver pgsql
+
+[2] PARAMETROS DE CONEXION
+- Host: 127.0.0.1
+- Puerto: 5432
+- Base de datos: xploitdb
+- Usuario: postgres
+- Password: -------
+
+[3] CADENA DE CONEXION PDO
+- dsn = pgsql:host=127.0.0.1;port=5432;dbname=xploitdb
+
+[4] OPCIONES PDO
+- PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION
+- PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC
+
+[5] TABLAS EXISTENTES
+- usuarios
+- flags_resueltas
+
+========================================
+TABLA: usuarios
+========================================
+
+Descripcion:
+Tabla principal de usuarios del sistema. Contiene los datos de registro,
+credenciales hasheadas y puntuacion acumulada del ranking.
+
+Columnas:
+- id                : integer, PRIMARY KEY, autoincremental
+- nombre            : varchar(100), NOT NULL
+- apellido          : varchar(100), NOT NULL
+- fechanacimiento   : date, NOT NULL
+- username          : varchar(50), NOT NULL, UNIQUE
+- email             : varchar(150), NOT NULL, UNIQUE
+- passwordhash      : varchar(255), NOT NULL
+- puntos            : integer, NOT NULL, DEFAULT 0
+
+Indices y restricciones:
+- PRIMARY KEY (id)
+- UNIQUE (username)
+- UNIQUE (email)
+
+Uso dentro de la aplicacion:
+- Login por username o email
+- Registro de nuevos usuarios
+- Ranking global por puntos
+- Consulta de posicion del usuario
+
+Consultas detectadas en el proyecto:
+- SELECT username, puntos FROM usuarios ORDER BY puntos DESC, id ASC LIMIT 10
+- SELECT id, username, passwordhash FROM usuarios WHERE username = ? OR email = ? LIMIT 1
+- INSERT INTO usuarios (nombre, apellido, fechanacimiento, username, email, passwordhash, puntos) VALUES (?, ?, ?, ?, ?, ?, 0)
+- UPDATE usuarios SET puntos = puntos + ? WHERE id = ?
+
+========================================
+TABLA: flags_resueltas
+========================================
+
+Descripcion:
+Tabla de relacion entre usuarios y flags ya resueltas. Se usa para evitar
+sumar puntos repetidos y para mostrar el progreso de cada nivel.
+
+Columnas detectadas por uso en el codigo:
+- user_id
+- flag_id
+
+Relacion:
+- user_id referencia a usuarios(id)
+- ON DELETE CASCADE
+
+Uso dentro de la aplicacion:
+- Saber si una flag ya fue resuelta por un usuario
+- Evitar reclamar XP dos veces
+- Pintar progreso en index.php
+- Marcar flags completadas por nivel
+
+Consultas detectadas:
+- SELECT flag_id FROM flags_resueltas WHERE user_id = ? GROUP BY flag_id
+- SELECT COUNT(*) FROM flags_resueltas WHERE user_id = ? AND flag_id = ?
+- INSERT INTO flags_resueltas (user_id, flag_id) VALUES (?, ?)
+
+========================================
+AUTENTICACION
+========================================
+
+Login:
+- El usuario puede iniciar sesion usando username o email
+- Se compara el password introducido contra passwordhash
+- La verificacion se hace con password_verify() en PHP
+
+Registro:
+- La contraseña se guarda con password_hash(..., PASSWORD_BCRYPT)
+- Al registrar un usuario nuevo, puntos inicia en 0
+
+Variables de sesion usadas:
+- $_SESSION['user_id']
+- $_SESSION['username']
+
+========================================
+FLUJO FUNCIONAL DE LA BBDD
+========================================
+
+1. Registro
+   - Se inserta un nuevo usuario en la tabla usuarios
+   - Se guarda passwordhash usando bcrypt
+   - El usuario empieza con 0 puntos
+
+2. Login
+   - Se busca por username o email
+   - Se valida passwordhash con password_verify()
+
+3. Validacion de flags
+   - Cada nivel compara la flag introducida con una flag real configurada en PHP
+   - Si es correcta, se comprueba en flags_resueltas si ya estaba reclamada
+   - Si no estaba reclamada:
+     a) se suman puntos en usuarios
+     b) se inserta la relacion en flags_resueltas
+
+4. Ranking
+   - Se obtiene el top 10 ordenando por puntos DESC e id ASC
+   - Tambien se calcula la posicion del usuario autenticado
+
+========================================
+IDENTIFICADORES DE FLAGS USADOS
+========================================
+
+Nivel 1:
+- lvl1_f1
+- lvl1_f2
+- lvl1_f3
+
+Nota:
+En parte del codigo tambien aparecen como:
+- lvl1f1
+- lvl1f2
+- lvl1f3
+
+Nivel 2:
+- f1
+- f2
+- f3
+
+Nivel 3:
+- lvl3_f1
+- lvl3_f2
+- lvl3_f3
+- lvl3_f4
+
+Nota:
+En parte del codigo tambien aparecen como:
+- lvl3f1
+- lvl3f2
+- lvl3f3
+- lvl3f4
+
+IMPORTANTE:
+Conviene unificar naming en toda la aplicacion para evitar errores entre
+los ids usados en PHP y los almacenados en la tabla flags_resueltas.
+
+========================================
+DATOS TECNICOS DEL PROYECTO RELACIONADOS
+========================================
+
+Backend:
+- PHP con PDO
+- PostgreSQL
+
+Ficheros principales relacionados con BBDD:
+- db.php
+- auth.php
+- index.php
+- nivel1.php
+- nivel2.php
+- nivel3.php
+
+========================================
+ESTADO ACTUAL 
+========================================
+
+- Motor de base de datos confirmado: PostgreSQL
+- Base de datos confirmada: xploitdb
+- Tabla usuarios confirmada
+- Tabla flags_resueltas confirmada
+- Login con password_verify() confirmado
+- Registro con password_hash(..., PASSWORD_BCRYPT) confirmado
+- Ranking por puntos confirmado
+
+========================================
+FIN DEL DOCUMENTO
+========================================
