@@ -16,7 +16,7 @@ En el ámbito de la ciberseguridad y la educación informática, el aprendizaje 
 
 Una de las plataformas más reconocidas, longevas y valoradas por la comunidad de ciberseguridad es **OverTheWire** (OTW). 
 
-![Plataforma OverTheWire](../../src/otw.png)
+![Plataforma OverTheWire](../../../../src/otw.png)
 
 OverTheWire ofrece múltiples "Wargames" (juegos de guerra cibernética) orientados a enseñar conceptos de seguridad desde un nivel absolutamente básico hasta niveles avanzados. Se divide en diferentes ramas (ej. *Bandit* para Linux/SSH, *Natas* para vulnerabilidades Web).
 
