@@ -1,6 +1,6 @@
 # XPLOIT
 
-Plataforma de entrenamiento en ciberseguridad estilo CTF/OverTheWire, con retos progresivos, validación de flags, ranking competitivo y documentación técnica del proyecto.
+Plataforma de entrenamiento en ciberseguridad estilo CTF, con retos progresivos, validación de flags, ranking competitivo y documentación técnica del proyecto.
 
 ## Qué es XPLOIT
 
