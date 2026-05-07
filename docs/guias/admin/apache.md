@@ -1,4 +1,4 @@
-# Documentación Técnica: Proyecto "Reto Apache"
+# Documentación Técnica: Reto Apache
 
 Esta documentación describe la arquitectura, configuración y lógica de explotación de la infraestructura de contenedores diseñada para el entrenamiento en seguridad web (CTF).
 
