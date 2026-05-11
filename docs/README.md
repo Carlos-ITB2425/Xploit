@@ -24,19 +24,21 @@ Los retos están diseñados en una escala de dificultad creciente para facilitar
 Toda la documentación técnica y de gestión está organizada siguiendo la estructura del repositorio:
 
 ###  Configuración y Administración
-* [Guía del Administrador](docs/guias/admin/xploit__web.md): Gestión de la plataforma web.
-* [Configuración Web](docs/guias/configuracion/Configuracion_web.txt): Parámetros técnicos del servidor Apache.
-* [Dominio y HTTPS](docs/guias/configuracion/dominio_https.md): Gestión del dominio `xploit.es` y certificados SSL.
-* [Hardening & Firewall](docs/guias/configuracion/firewall.md): Reglas de pfSense y endurecimiento del sistema.
-* [Reto Base de Datos](docs/guias/configuracion/reto_bbdd.md): Configuración de MySQL para los retos de inyección.
+* Guía del Administrador (Retos)
+    * [Alpine (LXC)](./guias/admin/alpine.md)
+    * [Apache](./guias/admin/apache.md)
+    * [Base de Datos](./guias/admin/reto_bbdd.md)
+* [Configuración Web](./guias/configuracion/xploit_web.md): Parámetros técnicos del servidor Apache.
+* [Dominio y HTTPS](./guias/configuracion/dominio_https.md): Gestión del dominio `xploit.es` y certificados SSL.
+* [Hardening & Firewall](./guias/configuracion/firewall.md): Reglas de IpTables y endurecimiento del sistema.
 
 ###  Gestión del Proyecto (Agile)
-* **Análisis Inicial:** [Estudio de Tecnologías Usadas](docs/proyecto/estudio_mercado_tecnologias/tecnologias_usadas.md) y [Comparativa](docs/proyecto/estudio_mercado_tecnologias/tecnologias_similares.md).
-* **Sprint 1:** [Planificación y Acta de Revisión](docs/proyecto/sprint1/) (13/04 - 24/04).
-* **Sprint 2:** [Planificación y Acta de Revisión](docs/proyecto/sprint2/) (27/04 - 08/05).
+* **Análisis Inicial:** [Estudio de Tecnologías Usadas](./proyecto/estudio_mercado_tecnologias/tecnologias_usadas.md) y [Comparativa](./proyecto/estudio_mercado_tecnologias/tecnologias_similares.md).
+* **Sprint 1:** [Planificación](./proyecto/sprint1/sprint_planning1.md) y [Acta de Revisión](./proyecto/sprint1/sprint_review1.md) (13/04 - 24/04).
+* **Sprint 2:** [Planificación](./proyecto/sprint2/sprint_planning2.md) y [Acta de Revisión](./proyecto/sprint2/sprint_review2.md) (27/04 - 12/05).
 
 ### Manuales de Usuario
-* [Guía del Usuario](docs/guias/configuracion/guia_usuario.md): Instrucciones para jugadores sobre cómo acceder y validar flags.
+* [Guía del Usuario](./guias/configuracion/guia_usuario.md): Instrucciones para jugadores sobre cómo acceder y validar flags.
 
 ## 5. Tecnologías Utilizadas
 | Categoría | Tecnologías |
@@ -44,7 +46,7 @@ Toda la documentación técnica y de gestión está organizada siguiendo la estr
 | Cloud | AWS (EC2, VPC, Security Groups)  |
 | Contenedores | Docker (Linux Containers)  |
 | Servicios Web | Apache, PHP  |
-| Bases de Datos | MySQL  |
+| Bases de Datos | PostgreSQL, SQLite  |
 | Seguridad | iptables, SSH (Privilegios Mínimos)  |
 | Monitorización | Servicio de Backups y Gestión de Logs  |
 
