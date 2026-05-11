@@ -29,7 +29,7 @@ Toda la documentación técnica y de gestión está organizada siguiendo la estr
     * [Apache](./guias/admin/apache.md)
     * [Base de Datos](./guias/admin/reto_bbdd.md)
 * [Configuración Web](./guias/configuracion/xploit_web.md): Parámetros técnicos del servidor Apache.
-* [Dominio y HTTPS](./guias/configuracion/dominio_https.md): Gestión del dominio `xploit.es` y certificados SSL.
+* [Dominio y HTTPS](./guias/configuracion/dominio_https.md): Gestión del dominio `xploit.cat` y certificados SSL.
 * [Hardening & Firewall](./guias/configuracion/firewall.md): Reglas de IpTables y endurecimiento del sistema.
 
 ###  Gestión del Proyecto (Agile)
