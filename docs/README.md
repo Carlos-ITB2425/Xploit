@@ -35,7 +35,7 @@ Toda la documentación técnica y de gestión está organizada siguiendo la estr
 * **Sprint 1:** [Planificación y Acta de Revisión](docs/proyecto/sprint1/) (13/04 - 24/04).
 * **Sprint 2:** [Planificación y Acta de Revisión](docs/proyecto/sprint2/) (27/04 - 08/05).
 
-### 📖 Manuales de Usuario
+### Manuales de Usuario
 * [Guía del Usuario](docs/guias/configuracion/guia_usuario.md): Instrucciones para jugadores sobre cómo acceder y validar flags.
 
 ## 5. Tecnologías Utilizadas
