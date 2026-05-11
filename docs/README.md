@@ -31,6 +31,8 @@ Toda la documentación técnica y de gestión está organizada siguiendo la estr
 * [Configuración Web](./guias/configuracion/xploit_web.md): Parámetros técnicos del servidor Apache.
 * [Dominio y HTTPS](./guias/configuracion/dominio_https.md): Gestión del dominio `xploit.cat` y certificados SSL.
 * [Hardening & Firewall](./guias/configuracion/firewall.md): Reglas de IpTables y endurecimiento del sistema.
+* [Backups](./guias/configuracion/backups.md): Script de automatización de backups
+* [Monitorización](./guias/configuracion/monitorizacion.md): Panel de supervisión de logs de la web `xploit.cat`
 
 ###  Gestión del Proyecto (Agile)
 * **Análisis Inicial:** [Estudio de Tecnologías Usadas](./proyecto/estudio_mercado_tecnologias/tecnologias_usadas.md) y [Comparativa](./proyecto/estudio_mercado_tecnologias/tecnologias_similares.md).
