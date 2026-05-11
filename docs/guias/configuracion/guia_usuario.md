@@ -90,3 +90,11 @@ Si el acceso SSH o la URL del nivel no responde, lo correcto es revisar el estad
 La plataforma utiliza contenedores y despliegue reproducible mediante Docker Compose para simplificar la gestión de servicios y mantener el entorno consistente entre desarrollo y pruebas. En el apartado web, la lógica de autenticación y validación debe tratar comparaciones y entradas del usuario con cuidado, especialmente en PHP, donde las comparaciones débiles pueden provocar bypass de autenticación si se usan operadores inseguros como `==` en lugar de `===`.
 
 En los retos de tipo web, también conviene recordar que Apache puede exponer información sensible mediante configuraciones débiles o directorios accesibles, por lo que la inspección del HTML, de directorios y de rutas expuestas forma parte del aprendizaje.
+
+## 10. Monitoreo del Sistema (XPLOIT SYS-CON)
+
+Para supervisar el rendimiento de la infraestructura, se ha habilitado un panel de control en tiempo real.
+
+- **Acceso:** Se puede visualizar en [https://xploit.cat/monitor/](https://xploit.cat/monitor/).
+- **Información disponible:** El panel muestra métricas de CPU, uso de memoria RAM y el flujo de logs de acceso y errores del servidor.
+- **Seguridad:** El acceso a los datos detallados requiere autenticación de administrador. Los usuarios autorizados deben iniciar sesión para activar el refresco dinámico de las métricas de sistema.
