@@ -1,4 +1,4 @@
-<<<<<<< HEAD
+
 # Diseño de Infraestructura y Firewall Perimetral
 
 Este documento describe la arquitectura de red diseñada para segmentar el tráfico público de los entornos de entrenamiento, utilizando un Gateway basado en Linux e iptables.
@@ -30,6 +30,4 @@ Dado que las reglas de iptables son volátiles por defecto, se ha implementado e
 - **Políticas de Acceso**: Solo se exponen los puertos estrictamente necesarios para los retos. El puerto 22 (SSH) del Firewall solo admite autenticación por llave pública (.pem), deshabilitando contraseñas.
 - **SNI y SSL**: Para evitar errores de "Misdirected Request" (HTTP 421), el servidor Apache en el backend está configurado para manejar el SNI del dominio principal redirigido desde el Firewall.
 - **Aislamiento**: Se aplica `MASQUERADE` en la cadena POSTROUTING para ocultar la topología interna y asegurar que el tráfico de retorno fluya correctamente a través del Gateway.
-=======
-ajf
->>>>>>> c687b0bf39b10a7e9640de40ba1289c957287135
+            
