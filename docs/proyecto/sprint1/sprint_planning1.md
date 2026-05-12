@@ -94,6 +94,8 @@ Los siguientes elementos fueron identificados en la sesión de brainstorming y s
 
 ---
 
+![sprint planning 1](../../../src/sprint-planning1.png)
+
 ## Notas de la Sesión
 
 - Se ha realizado una sesión de brainstorming completa con definición de la arquitectura del proyecto.

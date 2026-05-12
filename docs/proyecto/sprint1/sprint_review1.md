@@ -65,7 +65,7 @@
 
 ---
 
-## ESTAT ACTUAL
+## ESTADO ACTUAL
 
 * **Funciona:**
     * Instancia AWS accesible y segura vía SSH.

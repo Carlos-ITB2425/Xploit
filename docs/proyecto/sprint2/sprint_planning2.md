@@ -74,6 +74,8 @@ El objetivo principal de este sprint es dejar operativa y más segura la base t�
 - Joc de proves i validació del sistema (RA2).
 - Defensa final del proyecto.
 
+
+![sprint planning 2](../../../src/sprint-planning2.png)
 ---
 
 ## Notas de la Sesión
