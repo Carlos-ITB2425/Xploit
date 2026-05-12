@@ -111,15 +111,45 @@ Estrategia de respaldo basada en scripts personalizados y tareas programadas (Cr
 
 ---
 
-## 4. Monitorización y Auditoría 
+## 4. Monitorización y Auditoría
 
-### Stack ELK (Elasticsearch, Logstash, Kibana) + Beats
-Plataforma avanzada de centralización de logs y monitorización de rendimiento.
-* **Propósito:** 1. **Monitorización de infraestructura:** Vigilar el uso de CPU, RAM, red y estado (Up/Down) de las 3 instancias AWS mediante *Metricbeat* y *Heartbeat*.
-  2. **Auditoría de seguridad (CTF):** Recolectar logs de Apache, Docker, SSH y pfSense mediante *Filebeat* para tener visibilidad total de los ataques de los jugadores y detectar anomalías.
-* **Pros:** Solución de nivel empresarial (Enterprise-grade). Ofrece dashboards en tiempo real increíblemente potentes e interactivos en Kibana. Cubre las rúbricas más altas del proyecto (RA1/RA2).
-* **Contras:** Es un stack pesado. Elasticsearch requiere bastante memoria RAM para funcionar con fluidez (se recomienda al menos una instancia de 4GB RAM dedicada al stack). Curva de aprendizaje alta para configurar los filtros (Grok) en Logstash.
-* **Dependencias:** Instancia Core/Gestión con recursos suficientes; instalación de agentes (Beats) en las máquinas cliente.
+### XPLOIT SYS-CON (Custom Live Monitoring)
+El sistema de monitorización se ha diseñado bajo una filosofía de **"Fichero Único" (Single-file Component)**. Esto significa que el control de sesiones, la API de datos, la lógica de sistema y la interfaz visual conviven en un solo archivo `index.php`, optimizando la portabilidad y el rendimiento en entornos AWS.
+
+ **Propósito:** 
+   1. **Monitorización de infraestructura:** Visualización dinámica y gráfica del uso de CPU (*Load Average*) y RAM (vía `/proc/meminfo`) de la instancia de retos.
+   
+  2. **Auditoría de seguridad:** Supervisión en vivo de los logs de acceso y error de Apache mediante comandos `tail` para identificar vectores de ataque y actividad de los jugadores de forma inmediata.
+
+  **Pros:** 
+  -  **Ligereza Extrema:** Consumo de recursos prácticamente nulo, evitando la carga de un stack externo pesado (como ELK) que requeriría instancias de mayor coste.
+  
+  - **Visualización en Tiempo Real:** Refresco de métricas cada 1.5 segundos mediante **AJAX (Fetch API)** y representación gráfica con **Chart.js**.
+  
+  - **Arquitectura Autocontenida:** Backend (PHP) y Frontend (HTML5/JS) en un solo componente, facilitando su despliegue y mantenimiento.
+
+ **Contras:** 
+-  **Alcance Local:** Monitoriza específicamente el host donde está alojado, sin centralización de logs de nodos externos.
+  
+-  **Histórico Volátil:** Prioriza la visibilidad del estado actual y logs recientes sobre el almacenamiento de datos históricos a largo plazo.
+
+  **Dependencias:**
+  - Usuario `www-data` añadido al grupo `adm`.
+  
+  - Funciones de sistema PHP (`shell_exec`, `sys_getloadavg`) habilitadas.
+  
+  - Librería **Chart.js** (cargada vía CDN).
+
+---
+
+### Configuración de Seguridad y Hardening
+Para que el sistema de monitorización sea funcional sin comprometer la integridad del servidor, se aplicaron las siguientes medidas técnicas:
+
+#### 1. Gestión de Privilegios
+El servidor web corre bajo el usuario `www-data`, que por defecto no tiene permisos de lectura sobre `/var/log/apache2/`. 
+* **Solución:** Se escalaron privilegios de lectura de forma segura añadiendo al usuario al grupo administrativo:
+  ```bash
+  sudo usermod -aG adm www-data.
 
 ---
 
