@@ -16,18 +16,39 @@ Proveedor cloud principal donde se alojará toda la infraestructura física virt
 * **Contras:** Riesgo de sobrecostes si no se monitoriza el uso de recursos.
 * **Dependencias:** Ninguna (Capa base).
 
-### pfSense (Virtual Appliance)
-Firewall y enrutador perimetral de código abierto basado en FreeBSD.
-* **Propósito:** Actuar como puerta de enlace (Gateway) aislando la red de gestión (Core) de la red expuesta (CTF Arena).
-* **Pros:** Potente sistema de reglas, interfaz gráfica intuitiva, capacidad para montar VPNs en el futuro (OpenVPN/Wireguard).
-* **Contras:** Requiere conocimientos avanzados de enrutamiento y NAT.
-* **Dependencias:** Instancia EC2 dedicada con al menos 2 interfaces de red (WAN/LAN).
+### Gateway instancia Linux (Iptables & Netfilter)
+Firewall y enrutador perimetral basado en una instancia de Ubuntu Server utilizando el stack nativo de red de Linux. 
 
-### DonDominio
+ **Propósito:** Actuar como puerta de enlace (Gateway) y nodo NAT, gestionando la segmentación del tráfico entre Internet y la red privada de retos. Su función principal es la traducción de direcciones (DNAT) para exponer los servicios del Host Xploit de forma controlada.
+
+ **Pros:**  
+
+ - **Ligereza:** Consumo de recursos mínimo en comparación con appliances virtuales; ideal para instancias de tipo *burstable* (T-series).
+
+ - **Flexibilidad**: Permite configuraciones granulares de NAT y enmascaramiento de red (MASQUERADE) mediante scripts.
+
+ - **Persistencia**: Integración nativa con el sistema mediante `iptables-persistent` y el control de parámetros del kernel via `sysctl`.
+
+ **Contras:** 
+
+ - **Gestión CLI**: Al carecer de interfaz gráfica, la administración se realiza exclusivamente por línea de comandos (Bash).
+
+- **Configuración manual:** Requiere la habilitación explícita del enrutamiento de paquetes (`ip_forward`) a nivel de kernel.
+
+**Dependencias**: 
+
+- Instancia EC2 con configuración de red optimizada.
+
+- Paquete `iptables-persistent` para garantizar la estabilidad tras reinicios.
+
+- Activación de `net.ipv4.ip_forward=1` en `/etc/sysctl.conf`.
+ 
+
+### Cdmon
 Registrador de dominios.
-* **Propósito:** Adquisición y gestión de las zonas DNS para el dominio `xploit.es`.
-* **Pros:** Económico para el primer año, panel de gestión DNS sencillo.
-* **Contras:** Soporte técnico no siempre es 24/7 en planes básicos.
+* **Propósito:** Adquisición y gestión de las zonas DNS para el dominio `xploit.cat`.
+* **Pros:** Gratuito y fácil de gestionar, ofrecido por el equipo docente.
+* **Contras:** Solo dominios .cat.
 
 ---
 
@@ -56,7 +77,9 @@ Sistemas operativos base.
 
 ### MySQL
 Sistema de gestión de bases de datos relacional.
-* **Propósito:** 1. Base de datos segura en la instancia Core para el registro de usuarios y ranking de puntos. 2. Base de datos aislada en contenedor para el reto de Inyección SQL.
+* **Propósito:** 
+  1.  Base de datos segura en la instancia Core para el registro de usuarios y ranking de puntos. 2. 
+  2.  Base de datos aislada en contenedor para el reto de Inyección SQL.
 * **Pros:** Muy maduro, gran rendimiento, estándar en la industria.
 
 ### Bash Scripts + Rsync sobre SSH (Copias Locales y en Red)
@@ -66,10 +89,25 @@ Estrategia de copias de seguridad de archivos y bases de datos.
 * **Contras:** Requiere configurar claves SSH dedicadas entre instancias y gestionar la rotación/limpieza manual de copias antiguas.
 * **Dependencias:** Utilidades `rsync`, `tar` y `cron`.
 
-### AWS EBS Snapshots (Disaster Recovery)
-Copias de seguridad a nivel de bloque gestionadas por AWS.
-* **Propósito:** Hacer una "foto" completa de los discos de las instancias periódicamente.
-* **Pros:** Restaura una máquina completa a un estado anterior en minutos si hay un fallo catastrófico o intrusión grave.
+### Sistema de Backup Automatizado (Disaster Recovery)
+Estrategia de respaldo basada en scripts personalizados y tareas programadas (Cron Jobs) para la exportación de datos críticos.
+
+**Propósito:** 
+- Garantizar la integridad de los retos y la base de datos mediante copias de seguridad diarias, permitiendo la recuperación ante corrupciones de datos o fallos en los contenedores.
+  
+ **Pros:** 
+-  **Granularidad:** Permite restaurar bases de datos o archivos específicos sin necesidad de revertir toda la instancia de AWS.
+- **Eficiencia de Costes:** Evita el gasto acumulativo de snapshots de disco completos, almacenando solo la información esencial en una instancia de backup dedicada.
+-  **Automatización:** Ejecución desatendida mediante el demonio `cron`, con transferencia segura de datos vía red privada.
+  
+ **Contras:**  
+ - **Dependencia de Scripts:** Requiere mantenimiento y supervisión de los logs de ejecución para asegurar que las tareas se completan correctamente.
+-  **RPO (Recovery Point Objective):** La pérdida potencial de datos está limitada a la frecuencia de la tarea (ej. 24 horas si es diario).
+  
+ **Dependencias:** 
+ - Configuración de llaves SSH para transferencia sin contraseña.
+    * Utilidades de volcado de datos (como `pg_dump` para PostgreSQL).
+    * Servicio `cron` activo y configurado.
 
 ---
 
